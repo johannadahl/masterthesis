@@ -14,6 +14,9 @@ command = [
     '--format', 'json'
 ]
 
+working_directory = '/home/administrator/masterthesis/database'
+os.chdir(working_directory)
+
 # Run the command using subprocess
 try:
     subprocess.run(command, check=True)
