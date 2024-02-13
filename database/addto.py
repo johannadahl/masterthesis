@@ -31,7 +31,7 @@ def main2():
 
         #Connect to Elsa_containers database, to access test tables
         send_query(cursor, "USE Elsa_Containers;",0)
-
+        
         #Access the JSON data
         with open('worldcupdata.json','r') as f:
             data = json.load(f)
@@ -63,8 +63,36 @@ def main2():
             connection.close()
             print("MySQL connection closed")
 
+
+
 def main():
     print("Dockercontainer körs")
-    
+    try:
+        connection = mysql.connector.connect(user='root', 
+                                            password='root',
+                                            host='127.0.0.1',
+                                            port = '3306',
+                                            database = 'Elsa_Containers'
+                                            )
+        print("Connected to MySQL database successfully")
+
+        cursor = connection.cursor()
+        send_query(cursor, "select * from worldcup_requests;",0)
+        # Fetch all rows from the result set
+        rows = cursor.fetchall()
+        for row in rows:
+            print(row)
+        cursor.close()
+
+
+    except mysql.connector.Error as error:
+        print("Error while connecting to MySQL:", error)
+
+    finally:
+        if 'connection' in locals():
+            cursor.close()
+            connection.close()
+            print("MySQL connection closed")
+
 if __name__ == '__main__':
     main()
