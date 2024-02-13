@@ -4,9 +4,9 @@
 
 import json
 import sys
-sys.path.append('../cbsa_tools')  # Add the parent directory of your current directory to the Python path
+sys.path.append('../')  # Add the parent directory of cbsa_tools to the Python path
 
-from view import main  # Import the main function from view.py inside the cbsa_tools package
+from cbsa_tools.view import main
 
 def run_view_script(dataset, part, input_file, start_time, duration, output_format):
     # Call the main function of view.py with the provided arguments
