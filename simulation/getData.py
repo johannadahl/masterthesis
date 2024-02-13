@@ -1,6 +1,8 @@
 import mysql.connector
 import pandas as pd
 
+##under progress!!
+
 def fetch_and_return_data():
     db_config = {
         "host": "127.0.0.1",
@@ -10,25 +12,20 @@ def fetch_and_return_data():
     }
 
     try:
-        # Connect to the database
+        #Connect to database
         connection = mysql.connector.connect(**db_config)
-
-        # Create a cursor object
         cursor = connection.cursor()
 
-        # Execute a query to fetch data (replace 'your_table' with your actual table name)
+        #Qquert som hämtar allt från #johannas_table
         cursor.execute("SELECT time, SUM(request_count) as method_count FROM johannas_table GROUP BY time")
-
-        # Fetch all the rows
         result = cursor.fetchall()
 
-        # Create a DataFrame from the fetched data
+        #skapar en DataFrame
         column_names = ["time", "method_count"]
         df = pd.DataFrame(result, columns=column_names)
 
-        # Print the DataFrame
+        #vill se hur datan ser ut, ska tas bort så fort det är mycket data!!
         print(df)
-
         return df
 
     except mysql.connector.Error as err:
@@ -36,7 +33,6 @@ def fetch_and_return_data():
         return None
 
     finally:
-        # Close the cursor and connection
         if cursor:
             cursor.close()
         if connection.is_connected():
@@ -47,6 +43,6 @@ if __name__ == "__main__":
 
     # Now you can use data_result (DataFrame) in another function or perform additional processing
     if data_result is not None:
-        # Example: Print the result in another format
+        # här printas bara datan i annat format, ville se hur det såg ut 
         for index, row in data_result.iterrows():
             print(f"Timestamp: {row['time']}, Requests: {row['method_count']}")
