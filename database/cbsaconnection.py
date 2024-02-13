@@ -3,13 +3,9 @@
 
 
 import json
-import sys
-sys.path.append('../')  # Add the parent directory of cbsa_tools to the Python path
-
-from cbsa_tools.view import main
+from . . .cbsa_tools.view import main
 
 def run_view_script(dataset, part, input_file, start_time, duration, output_format):
-    # Call the main function of view.py with the provided arguments
     data = main([
         '--dataset', dataset,
         '--part', part,
@@ -29,7 +25,6 @@ def run_view_script(dataset, part, input_file, start_time, duration, output_form
             print(json_data)  # For example, print each JSON object
 
 if __name__ == '__main__':
-    # Example usage
     run_view_script(
         dataset='WORLDCUP98',
         part='wc_day90_1',
