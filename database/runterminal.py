@@ -13,8 +13,8 @@ command = [
     '--duration', '1h',
     '--format', 'json'
 ]
-
-working_directory = '/masterthesis/database'
+print(os.getcwd())
+working_directory = '/app/home/administrator/masterthesis/database'
 os.chdir(working_directory)
 
 try:
