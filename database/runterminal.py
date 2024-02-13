@@ -18,6 +18,7 @@ working_directory = '/app/home/administrator/masterthesis/database'
 os.chdir(working_directory)
 
 try:
+    print(os.getcwd())
     subprocess.run(command, check=True,  env=os.environ.copy() )
 except subprocess.CalledProcessError as e:
     print(f"An error occurred: {e}")
