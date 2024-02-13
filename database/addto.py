@@ -70,7 +70,7 @@ def main():
     try:
         connection = mysql.connector.connect(user='root', 
                                             password='root',
-                                            host='127.0.0.1',
+                                            host='Elsa-mysql',
                                             port = '3306',
                                             database = 'Elsa_Containers'
                                             )
