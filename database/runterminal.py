@@ -13,12 +13,8 @@ command = [
     '--duration', '1h',
     '--format', 'json'
 ]
-
-working_directory = '/home/administrator/masterthesis/database'
-os.chdir(working_directory)
-
 # Run the command using subprocess
 try:
-    subprocess.run(command, check=True)
+    subprocess.run(command, check=True )
 except subprocess.CalledProcessError as e:
     print(f"An error occurred: {e}")
