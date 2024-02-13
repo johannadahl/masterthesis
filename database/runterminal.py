@@ -14,7 +14,7 @@ command = [
     '--format', 'json'
 ]
 
-working_directory = '/home/administrator/masterthesis/database'
+working_directory = '/masterthesis/database'
 os.chdir(working_directory)
 
 try:
