@@ -1,0 +1,5 @@
+matplotlib @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_52jpupryfi/croot/matplotlib-suite_1698692115510/work
+matplotlib-inline @ file:///home/conda/feedstock_root/build_artifacts/matplotlib-inline_1660814786464/work
+mysql-connector-python==8.3.0
+numpy @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_97k4h5q73m/croot/numpy_and_numpy_base_1704311708477/work/dist/numpy-1.26.3-cp311-cp311-macosx_10_9_x86_64.whl#sha256=2ebf6a0390ba9e55eeb97f369d6e20fd5cff5bd78934ae8c164e4c8b153406ca
+pandas @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_80pc5xjc2v/croot/pandas_1702317994691/work/dist/pandas-2.1.4-cp311-cp311-macosx_10_9_x86_64.whl#sha256=562d8dcc486342bcfe647be4b2ca0c2d857ced5be1d9ae31f02631c15ceff057

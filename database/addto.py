@@ -1,6 +1,5 @@
 #Not finished
 #The script adds data to the database from json files
-
 import mysql.connector 
 import json
 import pandas as pd
@@ -32,6 +31,8 @@ def main():
 
         #Connect to Elsa_containers database, to access test tables
         send_query(cursor, "USE Elsa_Containers;",0)
+
+        #Access the JSON data
         with open('worldcupdata.json','r') as f:
             data = json.load(f)
         print(data)
