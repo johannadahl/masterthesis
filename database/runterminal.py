@@ -8,17 +8,14 @@ command = [
     '/home/administrator/cbsa_tools/view.py',  # Full path to view.py
     '--dataset', 'WORLDCUP98',
     '--part', 'wc_day90_1',
-    '--input', '/home/administrator/cbsa_tools/worldcup98.zip',  # Full path to input file
+    '--input', '/home/administrator/worldcup98.zip',  # Full path to input file
     '--start', '1998-07-24T00:48:00',
     '--duration', '1h',
     '--format', 'json'
 ]
-print(os.getcwd())
-working_directory = '/app/home/administrator/masterthesis/database'
-os.chdir(working_directory)
 
 try:
     print(os.getcwd())
-    subprocess.run(command, check=True,  env=os.environ.copy() )
+    subprocess.run(command, check=True)
 except subprocess.CalledProcessError as e:
     print(f"An error occurred: {e}")
