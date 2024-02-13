@@ -16,7 +16,7 @@ def print_result(cursor):
     for row in rows:
         print(row)
 
-def main():
+def main2():
     try:
 
         connection = mysql.connector.connect(user='root', 
@@ -63,5 +63,8 @@ def main():
             connection.close()
             print("MySQL connection closed")
 
+def main():
+    print("Dockercontainer körs")
+    
 if __name__ == '__main__':
     main()
