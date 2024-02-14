@@ -4,4 +4,4 @@ import sys
 for line in sys.stdin:
     # Process each line as needed
     print(line)
-    print(line.get("time"))
+    print("hej")
