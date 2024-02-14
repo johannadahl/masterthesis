@@ -1,7 +1,7 @@
 import sys
 import json
 import pandas as pd
-import mysql.connector 
+#import mysql.connector 
 
 def send_query(cursor, query, values):
     if values != 0:
@@ -14,15 +14,16 @@ def print_result(cursor):
     for row in rows:
         print(row)
 
+
 def main():
 
     data_list = []
     for line in sys.stdin:
-        data = json.loads(line)
-            # Append the parsed JSON data to the list
+        data = json.loads(line) #Reads in the json lines from the terminal output
         data_list.append(data)
-    df = pd.DataFrame(data_list)
-    df_counts = df.groupby('time').size().reset_index(name='requests')
+
+    df = pd.DataFrame(data_list) #Adds all data into a dataframe
+    df_counts = df.groupby('time').size().reset_index(name='requests') #preprocess the data into requests/timestammp (in seconds)
     print(df)
     print(df_counts)
 
