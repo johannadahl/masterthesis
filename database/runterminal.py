@@ -38,10 +38,10 @@ def main():
 
         cursor = connection.cursor()
                 # finns sedan innan, detta kan tas bort sen!!!!
-        cursor.execute("DROP TABLE IF EXISTS worldcup98_table")
+        cursor.execute("DROP TABLE IF EXISTS worldcup98")
 
         cursor.execute("""
-            CREATE TABLE worldcup98_table (
+            CREATE TABLE worldcup98 (
                 timestamp TIMESTAMP NOT NULL,
                 requests INT NOT NULL DEFAULT 0,
                 PRIMARY KEY (timestamp)
@@ -49,7 +49,7 @@ def main():
         """)
 
         for row,item in df_counts.iterrows():
-            send_query(cursor,"INSERT INTO worldcup98_table (timestamp,requests) Values (%s,%s);",(item['time'], item['requests']))
+            send_query(cursor,"INSERT INTO worldcup98 (timestamp,requests) Values (%s,%s);",(item['time'], item['requests']))
 
         connection.commit()
         
