@@ -37,11 +37,21 @@ def main():
         print("Connected to MySQL database successfully")
 
         cursor = connection.cursor()
-        
-        for row,item in df_counts.iterrows():
-            send_query(cursor,"INSERT INTO worldcup_requests (timestamp,requests) Values (%s,%s);",(item['time'], item['requests']))
+                # finns sedan innan, detta kan tas bort sen!!!!
+        cursor.execute("DROP TABLE IF EXISTS worldcup_table")
 
-        send_query(cursor, "select * from worldcup_requests;",0)
+        cursor.execute("""
+            CREATE TABLE worldcup_table (
+                timestamp TIMESTAMP NOT NULL,
+                requests INT NOT NULL DEFAULT 0,
+                PRIMARY KEY (time)
+            )
+        """)
+
+        for row,item in df_counts.iterrows():
+            send_query(cursor,"INSERT INTO worldcup_table (timestamp,requests) Values (%s,%s);",(item['time'], item['requests']))
+
+        send_query(cursor, "select * from worldcup_table;",0)
         print_result(cursor)
         
         cursor.close()
