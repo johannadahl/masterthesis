@@ -32,16 +32,16 @@ def main():
                                             password='root',
                                             host='127.0.0.1',
                                             port = '3306',
-                                            database = 'Elsa_Containers'
+                                            database = 'simulationDB'
                                             )
         print("Connected to MySQL database successfully")
 
         cursor = connection.cursor()
                 # finns sedan innan, detta kan tas bort sen!!!!
-        cursor.execute("DROP TABLE IF EXISTS worldcup_table")
+        cursor.execute("DROP TABLE IF EXISTS worldcup98_table")
 
         cursor.execute("""
-            CREATE TABLE worldcup_table (
+            CREATE TABLE worldcup98_table (
                 timestamp TIMESTAMP NOT NULL,
                 requests INT NOT NULL DEFAULT 0,
                 PRIMARY KEY (timestamp)
@@ -49,7 +49,7 @@ def main():
         """)
 
         for row,item in df_counts.iterrows():
-            send_query(cursor,"INSERT INTO worldcup_table (timestamp,requests) Values (%s,%s);",(item['time'], item['requests']))
+            send_query(cursor,"INSERT INTO worldcup98_table (timestamp,requests) Values (%s,%s);",(item['time'], item['requests']))
 
         connection.commit()
         
