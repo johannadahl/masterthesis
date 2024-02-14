@@ -51,7 +51,7 @@ def main():
         for row,item in df_counts.iterrows():
             send_query(cursor,"INSERT INTO worldcup_table (timestamp,requests) Values (%s,%s);",(item['time'], item['requests']))
 
-        cursor.commit()
+        connection.commit()
         
         cursor.close()
 
