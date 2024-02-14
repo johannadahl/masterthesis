@@ -26,6 +26,7 @@ def main():
     df_counts = df.groupby('time').size().reset_index(name='requests') #preprocess the data into requests/timestammp (in seconds)
     print(df)
     print(df_counts)
+
     try:
         connection = mysql.connector.connect(user='root', 
                                             password='root',
@@ -36,11 +37,13 @@ def main():
         print("Connected to MySQL database successfully")
 
         cursor = connection.cursor()
+        
+        for row,item in df_counts.iterrows():
+            send_query(cursor,"INSERT INTO worldcup_requests (timestamp,requests) Values (%s,%s);",(item['time'], item['requests']))
+
         send_query(cursor, "select * from worldcup_requests;",0)
-        # Fetch all rows from the result set
-        rows = cursor.fetchall()
-        for row in rows:
-            print(row)
+        print_result(cursor)
+        
         cursor.close()
 
 
