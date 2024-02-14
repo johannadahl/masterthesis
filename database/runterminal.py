@@ -44,7 +44,7 @@ def main():
             CREATE TABLE worldcup_table (
                 timestamp TIMESTAMP NOT NULL,
                 requests INT NOT NULL DEFAULT 0,
-                PRIMARY KEY (time)
+                PRIMARY KEY (timestamp)
             )
         """)
 
