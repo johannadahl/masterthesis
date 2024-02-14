@@ -1,9 +1,16 @@
 import sys
 import json
-# Read input from stdin
-for line in sys.stdin:
-    # Process each line as needed
-    data = json.loads(line)
+import pandas as pd
+
+
+def main():
+
+    data_list = []
+    for line in sys.stdin:
+        data = json.loads(line)
+        # Append the parsed JSON data to the list
+        data_list.append(data)
+    df = pd.DataFrame(data_list)
+    print(df)
+
     
-    # Access and print the value associated with the key "time"
-    print(data["time"])
