@@ -33,13 +33,13 @@ def connect_and_insert_to_sql(df_counts):
         
     #    cursor.execute("DROP TABLE IF EXISTS tablename")
 
-    #    cursor.execute("""
-    #        CREATE TABLE tablename (
-    #            timestamp TIMESTAMP NOT NULL,
-    #            requests INT NOT NULL DEFAULT 0,
-    #            PRIMARY KEY (timestamp)
-    #        )
-     #   """)
+        cursor.execute("""
+            CREATE TABLE allworldcup98 (
+                timestamp TIMESTAMP NOT NULL,
+                requests INT NOT NULL DEFAULT 0,
+                PRIMARY KEY (timestamp)
+            )
+        """)
 
         for row,item in df_counts.iterrows():
             send_query(cursor,"INSERT INTO worldcup98 (timestamp,requests) Values (%s,%s);",(item['time'], item['requests']))
