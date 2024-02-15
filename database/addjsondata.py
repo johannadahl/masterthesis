@@ -42,7 +42,7 @@ def connect_and_insert_to_sql(df_counts):
         """)
 
         for row,item in df_counts.iterrows():
-            send_query(cursor,"INSERT INTO worldcup98 (timestamp,requests) Values (%s,%s);",(item['time'], item['requests']))
+            send_query(cursor,"INSERT INTO allworldcup98 (timestamp,requests) Values (%s,%s);",(item['time'], item['requests']))
 
         connection.commit()
         
