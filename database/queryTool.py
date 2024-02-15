@@ -1,3 +1,6 @@
+
+# Script to make queries to the database
+
 import mysql.connector
 import pandas as pd
 
