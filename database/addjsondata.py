@@ -1,3 +1,6 @@
+#Script that pipeas output from terminal, this is found in sys.stdin (in our case, it is json output)
+#Connects and inserts to a mysql connected database
+
 import sys
 import json
 import pandas as pd
@@ -14,34 +17,24 @@ def print_result(cursor):
     for row in rows:
         print(row)
 
-
-def main():
-
-    data_list = []
-    for line in sys.stdin:
-        data = json.loads(line) #Reads in the json lines from the terminal output
-        data_list.append(data)
-
-    df = pd.DataFrame(data_list) #Adds all data into a dataframe
-    df_counts = df.groupby('time').size().reset_index(name='requests') #preprocess the data into requests/timestammp (in seconds)
-    print(df)
-    print(df_counts)
-
+def connect_and_insert_to_sql(df_counts):
     try:
-        connection = mysql.connector.connect(user='root', 
+        connection = mysql.connector.connect(user='root',  #Connects to Elsa-mysql container and the database simulationDB
                                             password='root',
                                             host='127.0.0.1',
                                             port = '3306',
-                                            database = 'simulationDB'
+                                            database = 'simulationDB' 
                                             )
         print("Connected to MySQL database successfully")
 
         cursor = connection.cursor()
-                # finns sedan innan, detta kan tas bort sen!!!!
-    #    cursor.execute("DROP TABLE IF EXISTS worldcup98")
+        
+        # Code-part below is outcommented since it is only necessary if the table doesnt exist in the database yet (first time running the code).  
+        
+    #    cursor.execute("DROP TABLE IF EXISTS tablename")
 
     #    cursor.execute("""
-    #        CREATE TABLE worldcup98 (
+    #        CREATE TABLE tablename (
     #            timestamp TIMESTAMP NOT NULL,
     #            requests INT NOT NULL DEFAULT 0,
     #            PRIMARY KEY (timestamp)
@@ -65,6 +58,20 @@ def main():
             connection.close()
             print("MySQL connection closed")
 
+
+
+def main():
+
+    data_list = []
+    for line in sys.stdin:
+        data = json.loads(line)  
+        data_list.append(data)
+
+    df = pd.DataFrame(data_list) #Adds all data into a dataframe
+    df_counts = df.groupby('time').size().reset_index(name='requests') #preprocess the data into requests/timestammp (in seconds)
+  #  print(df)
+  #  print(df_counts)
+    connect_and_insert_to_sql(df_counts)
 
 
 if __name__ == '__main__':
