@@ -5,6 +5,7 @@
 # python simpleOperationTest.py 1998-05 40S
 # där 1998-05 är vilken månad man vill titta på 
 # där 40S är hur många sekunder den klumpar ihop. går att köra 10S eller vad man nu vill 
+# docker måste va igång för att få connection till databas!!
 
 
 import sys
