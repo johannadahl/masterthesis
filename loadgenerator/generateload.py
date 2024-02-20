@@ -19,9 +19,10 @@ def process_data(data_result, resample_frequency):
             print(response)
             time.sleep(10) # detta kanske är fusk, borde vara en inparameter
 
+
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print("MÅSTE SKRIVAS SOM: python loadGenerator.py start_date resample_frequency")
+        print("MÅSTE SKRIVAS SOM: python loadgenerator.py start_date resample_frequency")
         sys.exit(1)
 
     start_date = sys.argv[1]
