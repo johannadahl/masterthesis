@@ -49,5 +49,7 @@ mydb.commit()
 mycursor.execute("SELECT * FROM johannas_table")
 result = mycursor.fetchall()
 
+
+# Close the cursor and connection
 mycursor.close()
 mydb.close()
