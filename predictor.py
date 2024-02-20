@@ -1,5 +1,5 @@
 ##Börja testa ML här 
-from database.queryTool import fetch_and_return_data
+from databaseservice.queryTool import fetch_and_return_data
 import matplotlib.pyplot as plt
 import pandas as pd
 
