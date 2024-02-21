@@ -2,34 +2,43 @@ import sys
 import pandas as pd
 import time
 import requests
+from flask import Flask
+from flask_restful import Api, Resource
+from databaseservice.queryTool import fetch_and_return_data
 
-# Denna kod itererar över varje tidsenhet som ges i argumentet och printar den sammanlagda loaden över den tiden
-# Körs genom python loadGenerator 1998-05 30S (eller liknande)
-# OBS kommer köras i alla oändlighet om den inte stängs av!!!
+app = Flask(__name__)
+api = Api(app)
 
 def process_data(data_result, resample_frequency):
-    BASE = "http://127.0.0.1:5000/"
-
     if data_result is not None:
-        # kollar varje rad i dataframen och printar värdet med delay som anges
         for index, row in data_result.iterrows():
             print(f"Method count for {index}: {row['method_count']}")
-
-            response = requests.post(BASE+"Workload/"+f"{row['method_count']}") #Skickar en POST request till restAPI med workload! Kommer få ERROR om inte en Flask server är startad
-            print(response)
             time.sleep(10) # detta kanske är fusk, borde vara en inparameter
 
+def start_load(date,freq):
+    data_result = fetch_and_return_data(date, freq)
+    process_data(data_result, freq)
+class LoadGenerator(Resource):
+
+    def get(self,start_date,resample_frequency): ##Override! This is what happens when we send a get request to the Load generator (starts a load)
+        start_load(start_date,resample_frequency) 
+
+api.add_resource(LoadGenerator, "/generate_load/<string:start_date>/<string:resample_frequency>") 
+
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("MÅSTE SKRIVAS SOM: python loadGenerator.py start_date resample_frequency")
-        sys.exit(1)
+    app.run(debug=True) #Startar flask server för Load Generator 
 
-    start_date = sys.argv[1]
-    resample_frequency = sys.argv[2]
+#Har kommenterat ut detta sålänge!
+#    if len(sys.argv) != 3:
+ #       print("MÅSTE SKRIVAS SOM: python loadGenerator.py start_date resample_frequency")
+ #       sys.exit(1)
 
-    from databaseservice.queryTool import fetch_and_return_data
+ #   start_date = sys.argv[1]
+  #  resample_frequency = sys.argv[2]
 
-    data_result = fetch_and_return_data(start_date, resample_frequency)
+  #  from databaseservice.queryTool import fetch_and_return_data
 
-    process_data(data_result, resample_frequency)
+  #  data_result = fetch_and_return_data(start_date, resample_frequency)
+
+  #  process_data(data_result, resample_frequency)
 

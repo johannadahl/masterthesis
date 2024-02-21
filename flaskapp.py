@@ -15,7 +15,8 @@ class GetNames(Resource):
         return names[name]
 
 class Workload(Resource):
-    def post(self,requests): 
+    def post(self,requests):
+        print(requests) 
         return requests
     
     def get(self,requests): ##Override! This is what happens when we send a get request to the HelloWorld class
