@@ -3,9 +3,43 @@
 
 import mysql.connector
 import pandas as pd
-import sys
 
-##under progress!!w
+import sys
+##under progress!!
+from flask import Flask,jsonify, make_response
+from flask_restful import Api, Resource
+app = Flask(__name__)
+api = Api(app)
+
+#EJ klar. Detta är tanken att load recorder ska använda i framtiden för att lägga in Target service data i databasen. 
+def add_load_data(load_data):
+    try:
+        connection = mysql.connector.connect(user='root',  #Connects to Elsa-mysql container and the database simulationDB
+                                            password='root',
+                                            host='127.0.0.1',
+                                            port = '3306',
+                                            database = 'simulationDB' 
+                                            )
+        print("Connected to MySQL database successfully")
+
+        cursor = connection.cursor()
+        
+        for row,item in load_data.iterrows(): #Skriv om när vi vet dataformen
+            cursor.execute("INSERT INTO target_service (timestamp,requests) Values (%s,%s);",(item['time'], item['requests']))
+
+        connection.commit()
+        
+        cursor.close()
+
+
+    except mysql.connector.Error as error:
+        print("Error while connecting to MySQL:", error)
+
+    finally:
+        if 'connection' in locals():
+            cursor.close()
+            connection.close()
+            print("MySQL connection closed")
 
 def fetch_and_return_data(start_date, resample_frequency):
     db_config = {
@@ -18,54 +52,47 @@ def fetch_and_return_data(start_date, resample_frequency):
     try:
         connection = mysql.connector.connect(**db_config)
         cursor = connection.cursor()
-
-        #Qquert som hämtar allt från #worldcup från MAJ MÅNAD
+        #Qquert som hämtar allt från worldcup från start_date
         cursor.execute("SELECT timestamp, SUM(requests) as method_count FROM worldcup98 WHERE timestamp LIKE '{}%' GROUP BY timestamp".format(start_date))
 
         result = cursor.fetchall()
-       # print("Raw data from the database:")
-       # print(result)
-
-        column_names = ["time", "method_count"]
-        df = pd.DataFrame(result, columns=column_names)
-
-        # Detta är för per 10:e sekund! ska göras om till en egen function sen 
-        df['time'] = pd.to_datetime(df['time'])
-        df_10_seconds = df.set_index('time').resample(resample_frequency).sum()
-
-
-        print("First 15 values in the resampled DataFrame:", df_10_seconds.head())
-        return df_10_seconds
-
-        #vill se hur datan ser ut, ska tas bort så fort det är mycket data!!
-        #print(df)
-        #print (" first 15 values in the database ")
-        #print (df.head(15))
-        #return df
+        return result
     
-
     except mysql.connector.Error as err:
         print(f"Error: {err}")
         return None
-
+    
     finally:
         if cursor:
             cursor.close()
         if connection.is_connected():
             connection.close()
 
+class DatabaseService(Resource):
+
+    def get(self,start_date,resample_frequency): ##Override! This is what happens when we send a get request to the Load generator (starts a load)
+        data = fetch_and_return_data(start_date, resample_frequency)
+        return make_response(jsonify(data), 200)
+    
+    def post(self,start_date,resample_frequency):
+        print("Hej")
+
+api.add_resource(DatabaseService, "/load_data/<string:start_date>/<string:resample_frequency>") 
+
 if __name__ == "__main__":
-  #  data_result = fetch_and_return_data()  #Endast detta stod här innan!!!
+    app.run(debug=True) #Startar flask server för DatabaseService 
+
+    
 
        # 3 argument annars blir det call error
-    if len(sys.argv) != 3:
-        print("Usage: python queryTool.py start_date resample_frequency")
-        sys.exit(1)
+#    if len(sys.argv) == 3:
+#        print("Usage: python queryTool.py start_date resample_frequency")
+#        sys.exit(1)
 
-    start_date = sys.argv[1]
-    resample_frequency = sys.argv[2]
+ #   start_date = sys.argv[1]
+ #   resample_frequency = sys.argv[2]
 
-    data_result = fetch_and_return_data(start_date, resample_frequency)
+ #   data_result = fetch_and_return_data(start_date, resample_frequency)
 
     # HÄR KAN MAN ANVÄNDA  (DataFrame) I EN ANNAN FUNCTION ELLER PERFORM ADDITIONAL PROCESSING
     #if data_result is not None:
