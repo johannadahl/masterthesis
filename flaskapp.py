@@ -1,5 +1,4 @@
-#The script starts a Flask Server and a Rest API
-#Run this script first to be able to send and get HTTP requests
+#Bara ett Script för att h exempel på FlaskServer!
 
 from flask import Flask
 from flask_restful import Api, Resource
