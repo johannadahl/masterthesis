@@ -7,7 +7,7 @@ import requests
 app = Flask(__name__)
 api = Api(app)
 QuerytoolBASE = "http://127.0.0.1:5000/"
-
+TargetServiceBASE = "http://127.0.0.1:8003/"
 def process_data(data_result, resample_frequency):
 
     if data_result is not None:
@@ -22,6 +22,7 @@ def process_data(data_result, resample_frequency):
 
         for index, row in df_10_seconds.iterrows():
             print(f"Method count for {index}: {row['method_count']}")
+            requests.post(TargetServiceBASE+f"targetservice/{row['method_count']}") 
             time.sleep(10) # detta kanske är fusk, borde vara en inparameter
 
 def start_load(date,freq):
