@@ -30,7 +30,7 @@ if __name__ == "__main__":
     resample_frequency = sys.argv[2]
 
     # Importera query tool
-    from queryTool import fetch_and_return_data
+    from querytool import fetch_and_return_data
 
     data_result = fetch_and_return_data(start_date, resample_frequency)
 
