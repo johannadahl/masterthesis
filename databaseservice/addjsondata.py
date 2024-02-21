@@ -1,3 +1,6 @@
+#OBSERVERA detta är inte en del av vårt system!
+#Denna körs bara när man vill skicka vidare scrapead data från cbsa_tools in i databasen
+
 #Script that pipeas output from terminal, this is found in sys.stdin (in our case, it is json output)
 #Connects and inserts to a mysql connected database
 
