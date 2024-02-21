@@ -4,7 +4,6 @@
 import mysql.connector
 import pandas as pd
 
-import sys
 ##under progress!!
 from flask import Flask,jsonify, make_response
 from flask_restful import Api, Resource
@@ -41,7 +40,7 @@ def add_load_data(load_data):
             connection.close()
             print("MySQL connection closed")
 
-def fetch_and_return_data(start_date, resample_frequency):
+def fetch_and_return_data(start_date):
     db_config = {
         "host": "127.0.0.1",
         "user": "root",
@@ -70,17 +69,26 @@ def fetch_and_return_data(start_date, resample_frequency):
 
 class DatabaseService(Resource):
 
-    def get(self,start_date,resample_frequency): ##Override! This is what happens when we send a get request to the Load generator (starts a load)
-        data = fetch_and_return_data(start_date, resample_frequency)
+    def get(self,start_date): ##Override! This is what happens when we send a get request to the Load generator (starts a load)
+        data = fetch_and_return_data(start_date)
         return make_response(jsonify(data), 200)
-    
-    def post(self,start_date,resample_frequency):
-        print("Hej")
 
-api.add_resource(DatabaseService, "/load_data/<string:start_date>/<string:resample_frequency>") 
+api.add_resource(DatabaseService, "/databaseservice/<string:start_date>") 
 
 if __name__ == "__main__":
     app.run(debug=True) #Startar flask server för DatabaseService 
+
+
+
+
+
+
+
+
+
+
+
+
 
     
 
