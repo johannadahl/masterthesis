@@ -36,6 +36,7 @@ def start_flask():
     app.run(debug=True, port=8003,use_reloader=False) #Startar flask server för TargetService på en annan tråd! 
 
 if __name__ == "__main__":
+    
 
     flask_thread = threading.Thread(target=start_flask) #Flaskservern måste köras på en egen tråd! annars kan man inte köra annan kod samtidigt 
     flask_thread.start()
