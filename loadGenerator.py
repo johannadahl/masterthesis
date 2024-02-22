@@ -6,8 +6,8 @@ import requests
 
 app = Flask(__name__)
 api = Api(app)
-QuerytoolBASE = "https://databaseservice/"
-TargetServiceBASE = "https://targetservice/"
+QuerytoolBASE = "http://databaseservice/"
+TargetServiceBASE = "http://targetservice/"
 
 def process_data(data_result, resample_frequency):
 
@@ -39,7 +39,7 @@ class LoadGenerator(Resource):
 api.add_resource(LoadGenerator, "/loadgenerator/<string:start_date>/<string:resample_frequency>") 
 
 if __name__ == "__main__":
-    app.run(debug=True,port = 8002,host="0.0.0.0") #Startar flask server för Load Generator 
+    app.run(debug=True,port = 8002) #Startar flask server för Load Generator 
 
 #Har kommenterat ut detta sålänge!
 #    if len(sys.argv) != 3:
