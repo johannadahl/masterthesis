@@ -6,8 +6,8 @@ import requests
 
 app = Flask(__name__)
 api = Api(app)
-QuerytoolBASE = "http://databaseservice/"
-TargetServiceBASE = "http://targetservice/"
+QuerytoolBASE = "http://databaseservice:5000/"
+TargetServiceBASE = "http://targetservice:8003/"
 
 def process_data(data_result, resample_frequency):
 
