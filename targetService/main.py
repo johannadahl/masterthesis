@@ -8,7 +8,7 @@ import threading
 
 app = Flask(__name__)
 api = Api(app)
-LoadGenBASE = "http://10.8.96.171:8002/"
+LoadGenBASE = "loadgenerator/"
 
 def preform_cpu_usage():
     ##Här lägger vi in en gigatisk for-loop tex
