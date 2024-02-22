@@ -22,7 +22,8 @@ def process_data(data_result, resample_frequency):
 
         for index, row in df_frequency.iterrows():
             print(f"Method count for {index}: {row['method_count']}")
-            requests.post(TargetServiceBASE+f"targetservice/{row['method_count']}") 
+            method_count = int(row['method_count'])
+            requests.post(TargetServiceBASE + "targetservice", json={"workload": method_count})
             time.sleep(10) # detta kanske är fusk, borde vara en inparameter
 
 def start_load(date,freq):
@@ -33,6 +34,7 @@ class LoadGenerator(Resource):
 
     def get(self,start_date,resample_frequency): ##Override! This is what happens when we send a get request to the Load generator (starts a load)
         start_load(start_date,resample_frequency) 
+        return {"message": "Load started"}, 200
 
 api.add_resource(LoadGenerator, "/loadgenerator/<string:start_date>/<string:resample_frequency>") 
 
@@ -43,6 +45,7 @@ if __name__ == "__main__":
 #    if len(sys.argv) != 3:
  #       print("MÅSTE SKRIVAS SOM: python loadGenerator.py start_date resample_frequency")
  #       sys.exit(1)
+
 
  #   start_date = sys.argv[1]
   #  resample_frequency = sys.argv[2]

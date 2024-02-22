@@ -46,6 +46,7 @@ def fetch_and_return_data(start_date):
         "user": "root",
         "password": "root",
         "database": "simulationDB"
+    
     }
 
     try:
