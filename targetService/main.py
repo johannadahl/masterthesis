@@ -32,7 +32,7 @@ class TargetService(Resource):
 api.add_resource(TargetService, "/targetservice") 
 
 def start_flask():
-    app.run(debug=True, port=8003,use_reloader=False) #Startar flask server för TargetService på en annan tråd! 
+    app.run(debug=True, port=8003,use_reloader=False, host='0.0.0.0') #Startar flask server för TargetService på en annan tråd! 
 
 if __name__ == "__main__":
 

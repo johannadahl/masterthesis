@@ -77,7 +77,7 @@ class DatabaseService(Resource):
 api.add_resource(DatabaseService, "/databaseservice/<string:start_date>") 
 
 if __name__ == "__main__":
-    app.run(debug=True) #Startar flask server för DatabaseService 
+    app.run(debug=True, host='0.0.0.0') #Startar flask server för DatabaseService 
 
 
 
