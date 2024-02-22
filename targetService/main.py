@@ -2,9 +2,8 @@
 from flask import Flask,request
 from flask_restful import Api, Resource
 import requests
-import time
 import threading
-import json
+
 
 
 app = Flask(__name__)
@@ -36,7 +35,7 @@ def start_flask():
     app.run(debug=True, port=8003,use_reloader=False) #Startar flask server för TargetService på en annan tråd! 
 
 if __name__ == "__main__":
-    
+
 
     flask_thread = threading.Thread(target=start_flask) #Flaskservern måste köras på en egen tråd! annars kan man inte köra annan kod samtidigt 
     flask_thread.start()

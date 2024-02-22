@@ -14,7 +14,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Finally copy the script files.
-COPY targetservice
+COPY . .
 
 # The entrypoint is py -u. Then, the arguments passed to the command "py -u" are
 # specified by the user when ruinning the container. For example, running the
