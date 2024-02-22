@@ -13,8 +13,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Finally copy the script files.
-COPY . .
+# Finally copy the script files EXCEPT for targetservice! this should be in an own container
+COPY --exclude=targetservice . .
 
 # The entrypoint is py -u. Then, the arguments passed to the command "py -u" are
 # specified by the user when ruinning the container. For example, running the
