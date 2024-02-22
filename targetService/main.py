@@ -5,6 +5,7 @@ import requests
 
 app = Flask(__name__)
 api = Api(app)
+LoadGenBASE = "http://127.0.0.1:8002/"
 
 def preform_cpu_usage():
     ##Här lägger vi in en gigatisk for-loop tex
@@ -19,9 +20,10 @@ class TargetService(Resource):
         print(workload)
 
 api.add_resource(TargetService, "/targetservice/<int:workload>") 
-
     
 if __name__ == "__main__":
-    app.run(debug=True,port=8003) #Startar flask server för DatabaseService 
+    app.run(debug=True,port=8003) #Startar flask server för TargetService
+    response = requests.get(LoadGenBASE+"loadgenerator/1998-05-02/10s")
+
     #Skicka till eller hämta från load recorder
 
