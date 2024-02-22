@@ -8,7 +8,7 @@ import threading
 
 app = Flask(__name__)
 api = Api(app)
-LoadGenBASE = "http://127.0.0.1:8002/"
+LoadGenBASE = "http://10.8.96.171:8002/"
 
 def preform_cpu_usage():
     ##Här lägger vi in en gigatisk for-loop tex
@@ -43,4 +43,5 @@ if __name__ == "__main__":
     target_service = TargetService(0)
     print("Instansierar targetservice", target_service.workload)
     response = requests.get(LoadGenBASE+"loadgenerator/1998-05-02/10s") #skickar en request om att starta en load
+
 
