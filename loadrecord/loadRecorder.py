@@ -2,13 +2,13 @@ from flask import Flask
 from flask_restful import Api, Resource
 import requests
 
-#### omgjord!! skelett 
+#### Omgjord!! skelett 
 
 app = Flask(__name__)
 api = Api(app)
 
 def get_cpu_usage():
-    target_url = "http://targetservice:5000/cpu_usage"  # kanske måste ha en docker compose fil för detta + ändra endpoint
+    target_url = "http://targetservice:5000/cpu_usage"  #Kanske måste ha en docker compose fil för detta + ändra endpoint
     response = requests.get(target_url)
 
     cpu_info = response.json()
