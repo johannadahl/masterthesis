@@ -6,8 +6,8 @@ import requests
 
 app = Flask(__name__)
 api = Api(app)
-QuerytoolBASE = "http://databaseservice:5000/"
-TargetServiceBASE = "http://targetservice:8003/"
+QuerytoolBASE = "http://127.0.0.1:5000/"
+TargetServiceBASE = "http://127.0.0.1:8003/"
 
 def process_data(data_result, resample_frequency):
 
@@ -19,12 +19,15 @@ def process_data(data_result, resample_frequency):
 
         df_frequency = df.set_index('time').resample(resample_frequency).sum()
         print("First 15 values in the resampled DataFrame:", df_frequency.head())
-
         for index, row in df_frequency.iterrows():
             print(f"Method count for {index}: {row['method_count']}")
             method_count = int(row['method_count'])
-            requests.post(TargetServiceBASE + "targetservice", json={"workload": method_count})
-            time.sleep(10) # detta kanske är fusk, borde vara en inparameter
+            try:
+                requests.post(TargetServiceBASE + "targetservice", json={"workload": method_count})
+                time.sleep(5) # detta kanske är fusk, borde vara en inparameter
+            except ValueError as e:
+                return {'error': str(e)}, 400
+            
 
 def start_load(date,freq):
     response = requests.get(QuerytoolBASE+"databaseservice/"+date)

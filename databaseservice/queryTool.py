@@ -15,7 +15,7 @@ def add_load_data(load_data):
     try:
         connection = mysql.connector.connect(user='root',  #Connects to Elsa-mysql container and the database simulationDB
                                             password='root',
-                                            host='Elsa-mysql',
+                                            host='127.0.0.1',
                                             port = '3306',
                                             database = 'simulationDB' 
                                             )
@@ -42,7 +42,7 @@ def add_load_data(load_data):
 
 def fetch_and_return_data(start_date):
     db_config = {
-        "host": "Elsa-mysql",
+        "host": "127.0.0.1",
         "user": "root",
         "password": "root",
         "database": "simulationDB"
