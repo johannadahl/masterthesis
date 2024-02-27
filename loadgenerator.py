@@ -27,7 +27,7 @@ def process_data(data_result, resample_frequency):
             timestamp = index
             try:
                 requests.post(TargetServiceBASE + "targetservice", json={"workload": method_count, "time": str(timestamp)})
-                time.sleep(1) # detta kanske är fusk, borde vara en inparameter
+            #    time.sleep(1) # detta kanske är fusk, borde vara en inparameter
             except ValueError as e:
                 return {'error': str(e)}, 400
             
