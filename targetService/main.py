@@ -3,6 +3,7 @@ from flask import Flask,request
 from flask_restful import Api, Resource
 import requests
 import threading
+import sys
 
 
 
@@ -18,11 +19,11 @@ def load_calculator(requests):
 
 class TargetService(Resource):
 
-    def __init__(self, total_load = 0, instances_scaled = 1):
+    def __init__(self, total_load = 0, instances_scaled = 1, threshold = 50):
         self.total_load = total_load
         self.average_load = total_load/instances_scaled ##Kanske inte ska vara heltalsdivision men de är det så länge
         self.instances_scaled = instances_scaled
-        self.threshold = 50 #Tröskel! vet inte vad som är rimligt
+        self.threshold = threshold #Tröskel! vet inte vad som är rimligt
         self.timestamp = None
 
     def post(self):
@@ -72,17 +73,25 @@ api.add_resource(TargetService, "/targetservice")
 def start_flask():
     app.run(debug=True, port=8003,use_reloader=False, host='0.0.0.0') #Startar flask server för TargetService på en annan tråd! 
 
-def create_target_service_with_workload(workload):
-        target_service = TargetService(workload, 1)  
+def create_target_service_with_workload(workload,load_threshold):
+        target_service = TargetService(workload, 1, load_threshold)  
         print("Instantiating target service with workload:", target_service.total_load)
         return target_service
 
 if __name__ == "__main__":
+    if len(sys.argv) != 4:
+        print("Usage: python queryTool.py start_date resample_frequency load_threshold")
+        sys.exit(1)
+
+    start_date = sys.argv[1]
+    resample_frequency = sys.argv[2]
+    load_threshold = int(sys.argv[3])
 
     flask_thread = threading.Thread(target=start_flask) #Flaskservern måste köras på en egen tråd! annars kan man inte köra annan kod samtidigt 
     flask_thread.start()
     global target_service
-    target_service = create_target_service_with_workload(0)
-    response = requests.get(LoadGenBASE+"loadgenerator/1998-05-02/10s") #Skickar en request om att starta en load
+    target_service = create_target_service_with_workload(0,load_threshold)
+    
+    response = requests.get(LoadGenBASE+"loadgenerator/"+start_date+"/"+resample_frequency) #Skickar en request om att starta en load
 
 
