@@ -40,7 +40,7 @@ def add_load_data(load_data):
             connection.close()
             print("MySQL connection closed")
 
-def add_target_load(average_load, total_load,instances_scaled):
+def add_target_load(average_load, total_load,instances_scaled, timestamp):
     try:
         connection = mysql.connector.connect(user='root',  #Connects to Elsa-mysql container and the database simulationDB
                                             password='root',
@@ -50,7 +50,7 @@ def add_target_load(average_load, total_load,instances_scaled):
                                             )
 
         cursor = connection.cursor()
-        cursor.execute("INSERT INTO target_device (average_load,total_load,instances) Values (%s,%s,%s);",(average_load, total_load,instances_scaled))
+        cursor.execute("INSERT INTO target_device (average_load,total_load,instances, timestamp) Values (%s,%s,%s,%s);",(average_load, total_load,instances_scaled,timestamp))
         connection.commit()
         cursor.close()
 
@@ -96,15 +96,17 @@ class DatabaseService(Resource):
 
     def get(self): ##Override! This is what happens when we send a get request to the Load generator (starts a load)
         start_date = request.json.get('start_date', None)
-        data = fetch_and_return_data(start_date)
-        return make_response(jsonify(data), 200)
+        if start_date is not None:
+            data = fetch_and_return_data(start_date)
+            return make_response(jsonify(data), 200)
     
     def post(self):
         total_load = request.json.get('total_load', None)
         average_load = request.json.get('average_load', None)
         instances_scaled = request.json.get('instances_scaled', None)
+        timestamp = request.json.get('time', None)
         if total_load is not None:
-            add_target_load(average_load, total_load, instances_scaled)
+            add_target_load(average_load, total_load, instances_scaled, timestamp)
         
 api.add_resource(DatabaseService, "/databaseservice") 
 

@@ -16,8 +16,9 @@ class LoadRecorder(Resource):
         total_load = request.json.get('total_load', None)
         average_load = request.json.get('average_load', None)
         instances_scaled = request.json.get('instances_scaled', None)
+        timestamp = request.json.get('time', None)
         print(total_load,average_load,instances_scaled)
-        requests.post(QuerytoolBASE + "databaseservice", json={"total_load": total_load, "average_load": average_load,"instances_scaled": instances_scaled})
+        requests.post(QuerytoolBASE + "databaseservice", json={"total_load": total_load, "average_load": average_load,"instances_scaled": instances_scaled, "time": timestamp})
         return {'status': 'success'}
 
 api.add_resource(LoadRecorder, "/loadrecorder") 
