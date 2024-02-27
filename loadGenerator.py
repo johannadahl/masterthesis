@@ -30,7 +30,7 @@ def process_data(data_result, resample_frequency):
             
 
 def start_load(date,freq):
-    response = requests.get(QuerytoolBASE+"databaseservice/"+date)
+    response = requests.get(QuerytoolBASE+"databaseservice",json={"start_date": date})
     data_result = response.json()
     process_data(data_result, freq)
 class LoadGenerator(Resource):

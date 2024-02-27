@@ -16,44 +16,52 @@ def load_calculator(requests):
     current_load = requests/100
     return current_load
 
-def instances_calculator(current_load,total_load,instances_scaled,instances_ready):
-    print("Här räknar vi ut hur mycket kärnor som kan behöva läggas till samt ")
-
-lock = threading.Lock()
 class TargetService(Resource):
 
     def __init__(self, total_load = 0, instances_scaled = 1):
         self.total_load = total_load
-        self.avarage_load = total_load/instances_scaled ##Kanske inte ska vara heltalsdivision men de är det så länge
+        self.average_load = total_load/instances_scaled ##Kanske inte ska vara heltalsdivision men de är det så länge
         self.instances_scaled = instances_scaled
         self.threshold = 50 #Tröskel! vet inte vad som är rimligt
 
     def post(self):
-        print("targetservice current values BEFORE", target_service.total_load, target_service.avarage_load,target_service.instances_scaled)
+        print("targetservice current values BEFORE", target_service.total_load, target_service.average_load,target_service.instances_scaled)
         workload = request.json.get('workload', None)
         if workload is not None: 
             print(workload)
             target_service.total_load = workload
             target_service.update_load()
             target_service.instances_calculator()
-            target_service.update_load()
-            print("targetservice current values", target_service.total_load, target_service.avarage_load,target_service.instances_scaled)
+            target_service.update_load() #This is to get the new average_load load after instances is updated!
+            print("targetservice current values", target_service.total_load, target_service.average_load,target_service.instances_scaled)
+
+            requests.post(LoadRecBASE + "loadrecorder", json={"total_load": target_service.total_load, "average_load": target_service.average_load,"instances_scaled": target_service.instances_scaled})
+
             return {'message': 'Current workload updated'}, 200
         else:
             return {'error': 'No workload'}, 400
         
     def instances_calculator(self):
-        if self.avarage_load > self.threshold:
-            self.instances_scaled +=1
-        elif self.instances_scaled > 1 and self.total_load/(self.instances_scaled-1)< self.threshold: ##ÄNDRA LOGIK FÖR NERSKALNING!! Funkar inte för alla fall:)
-            print(self.instances_scaled,self.avarage_load,self.threshold)
-            self.instances_scaled -=1
-        else:
-            print("Scaling wasnt needed.")
-        
+        scaling_needed = True
+        while scaling_needed:
+            if self.average_load > self.threshold:
+                self.instances_scaled +=1
+                self.update_load()
+                if self.average_load < self.threshold:
+                    scaling_needed = False
+            elif self.instances_scaled > 1 and self.total_load/(self.instances_scaled-1) < self.threshold: 
+                print(self.instances_scaled,self.average_load,self.threshold)
+                self.instances_scaled -=1
+                self.update_load()
+                if self.instances_scaled > 1 and self.total_load/(self.instances_scaled-1) > self.threshold:
+                    scaling_needed = False
+            else:
+                scaling_needed = False
+                print("Scaling wasnt needed.")
+            
     
     def update_load(self):
-        self.avarage_load = self.total_load/self.instances_scaled
+        self.average_load = self.total_load/self.instances_scaled
 
 
 api.add_resource(TargetService, "/targetservice") 

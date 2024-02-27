@@ -1,33 +1,26 @@
-from flask import Flask
+from flask import Flask,request
 from flask_restful import Api, Resource
 import requests
 
-#### Omgjord!! skelett 
 
 app = Flask(__name__)
 api = Api(app)
-
-def get_cpu_usage():
-    target_url = "http://targetservice:5000/cpu_usage"  #Kanske måste ha en docker compose fil för detta + ändra endpoint
-    response = requests.get(target_url)
-
-    cpu_info = response.json()
-    print (cpu_info)
-    return cpu_info
+TargetServiceBASE = "http://127.0.0.1:8003/"
+QuerytoolBASE = "http://127.0.0.1:5000/"
 
 
 #load recorder class 
 class LoadRecorder(Resource):
-    def post(self, workload):
-        print(workload)
 
-        # get CPU info from target container 
-        cpu_info = get_cpu_usage()
-        print(cpu_info)   # lägga i databas istälet för att printa 
-
+    def post(self):
+        total_load = request.json.get('total_load', None)
+        average_load = request.json.get('average_load', None)
+        instances_scaled = request.json.get('instances_scaled', None)
+        print(total_load,average_load,instances_scaled)
+        requests.post(QuerytoolBASE + "databaseservice", json={"total_load": total_load, "average_load": average_load,"instances_scaled": instances_scaled})
         return {'status': 'success'}
 
-api.add_resource(LoadRecorder, "/loadrecorder/<int:workload>") 
+api.add_resource(LoadRecorder, "/loadrecorder") 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8008, host='0.0.0.0')
+    app.run(debug=True,use_reloader=False, port=8008, host='0.0.0.0')
