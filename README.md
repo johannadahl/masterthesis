@@ -7,7 +7,11 @@ The Target Device sends a get request to the load generator to start a simulated
 To be able to run this script make sure ALL THREE flask servers for the other modules are running. Then, initiate a target device for a wanted starting date and request frequency using:
 
 ````bash
-python3 targetservice/main.py -start_date --resample_frequency
+python3 targetservice/main.py start_date resample_frequency
+````
+For example: 
+````bash
+python3 targetservice/main.py 1998-05-02 10s
 ````
 
 ### Database service
