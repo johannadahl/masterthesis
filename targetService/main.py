@@ -25,6 +25,13 @@ class TargetService(Resource):
         self.instances_scaled = instances_scaled
         self.threshold = threshold #Tröskel! vet inte vad som är rimligt
         self.timestamp = None
+    
+    def get(self):
+        time_request = request.json.get('time_request', None)
+        if time_request:     
+            time = target_service.timestamp
+            return time
+
 
     def post(self):
         print("targetservice current values BEFORE", target_service.total_load, target_service.average_load,target_service.instances_scaled)
