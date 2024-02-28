@@ -46,6 +46,6 @@ class LoadGenerator(Resource):
 api.add_resource(LoadGenerator, "/loadgenerator/<string:start_date>/<string:resample_frequency>") 
 
 if __name__ == "__main__":
-    app.run(debug=True,port = 8002, host='0.0.0.0') #Startar flask server för Load Generator 
+    app.run(debug=True,port = 8002, host='0.0.0.0',use_reloader=False) #Startar flask server för Load Generator 
 
 

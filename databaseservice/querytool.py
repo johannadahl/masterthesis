@@ -92,6 +92,35 @@ def fetch_and_return_data(start_date):
         if connection.is_connected():
             connection.close()
 
+def return_target_device_data(start_date):
+    db_config = {
+        "host": "127.0.0.1",
+        "user": "root",
+        "password": "root",
+        "database": "simulationDB"
+    
+    }
+
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor()
+        #Qquert som hämtar allt från targetdevice från dagen innan
+        cursor.execute("SELECT timestamp, average_load, total_load, instances FROM target_device WHERE DATE(timestamp) = %s", (start_date,))
+
+        result = cursor.fetchall()
+        return result
+    
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return None
+    
+    finally:
+        if cursor:
+            cursor.close()
+        if connection.is_connected():
+            connection.close()
+
+
 class DatabaseService(Resource):
 
     def get(self): ##Override! This is what happens when we send a get request to the Load generator (starts a load)
@@ -99,6 +128,11 @@ class DatabaseService(Resource):
         if start_date is not None:
             data = fetch_and_return_data(start_date)
             return make_response(jsonify(data), 200)
+        
+        previous_day = request.json.get('autoscaler', None)
+        if previous_day is not None:
+            target_data = return_target_device_data(previous_day)
+            return make_response(jsonify(target_data), 200)
     
     def post(self):
         total_load = request.json.get('total_load', None)
@@ -111,34 +145,4 @@ class DatabaseService(Resource):
 api.add_resource(DatabaseService, "/databaseservice") 
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0') #Startar flask server för DatabaseService 
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-
-       # 3 argument annars blir det call error
-#    if len(sys.argv) == 3:
-#        print("Usage: python queryTool.py start_date resample_frequency")
-#        sys.exit(1)
-
- #   start_date = sys.argv[1]
- #   resample_frequency = sys.argv[2]
-
- #   data_result = fetch_and_return_data(start_date, resample_frequency)
-
-    # HÄR KAN MAN ANVÄNDA  (DataFrame) I EN ANNAN FUNCTION ELLER PERFORM ADDITIONAL PROCESSING
-    #if data_result is not None:
-        # här printas bara datan i annat format, ville se hur det såg ut 
-    #    for index, row in data_result.iterrows():
-    #        print(f"Timestamp: {row['time']}, Requests: {row['method_count']}")
+    app.run(debug=True, host='0.0.0.0',use_reloader=False) #Startar flask server för DatabaseService 
