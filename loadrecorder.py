@@ -24,4 +24,4 @@ class LoadRecorder(Resource):
 api.add_resource(LoadRecorder, "/loadrecorder") 
 
 if __name__ == "__main__":
-    app.run(debug=True,use_reloader=False, port=8008, host='0.0.0.0')
+    app.run(debug=False,use_reloader=False, port=8008, host='0.0.0.0')

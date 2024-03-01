@@ -1,5 +1,5 @@
 
-#En början på prediktionsalgoritm!
+#En början på prediktionsalgoritm som anänder Support Vector Regression
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -52,9 +52,10 @@ def predict_workload(model, X):
 
 def return_target_data():
     #Hämtar data från target_device databasen
-    response = requests.get(QuerytoolBASE+"databaseservice",json={"autoscaler": "1998-05-02 00:00:00"})
+    response = requests.get(QuerytoolBASE+"databaseservice",json={"autoscaler": "1998-05-02"})
     data_result = response.json()
     historical_df = pd.DataFrame(data_result, columns=['timestamp', 'average_load', 'total_load', 'instances'])
+   # historical_df = pd.DataFrame(data_result, columns=['timestamp', 'requests'])
     return historical_df
     
 #Tränas på all data som finns samlad om target device so far
