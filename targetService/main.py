@@ -78,7 +78,7 @@ class TargetService(Resource):
 api.add_resource(TargetService, "/targetservice") 
 
 def start_flask():
-    app.run(debug=True, port=8003,use_reloader=False, host='0.0.0.0') #Startar flask server för TargetService på en annan tråd! 
+    app.run(debug=False, port=8003,use_reloader=False, host='0.0.0.0') #Startar flask server för TargetService på en annan tråd! 
 
 def create_target_service_with_workload(workload,load_threshold):
         target_service = TargetService(workload, 1, load_threshold)  
