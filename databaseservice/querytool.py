@@ -105,8 +105,9 @@ def return_target_device_data(start_date):
         connection = mysql.connector.connect(**db_config)
         cursor = connection.cursor()
         #Qquert som hämtar allt från targetdevice från dagen innan
-        cursor.execute("SELECT timestamp, average_load, total_load, instances FROM target_device WHERE DATE(timestamp) = %s", (start_date,))
-
+        cursor.execute("SELECT timestamp, average_load, total_load, instances FROM target_device WHERE DATE(timestamp) >= %s", (start_date,))
+      #  cursor.execute("SELECT timestamp, average_load, total_load, instances FROM target_device")
+                       
         result = cursor.fetchall()
         return result
     
