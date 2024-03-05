@@ -10,6 +10,7 @@ from sklearn.svm import SVR
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
 import numpy as np
+from numpy import mean, std
 
 TargetServiceBASE = "http://127.0.0.1:8003/"
 QuerytoolBASE = "http://127.0.0.1:5000/"
@@ -40,11 +41,25 @@ def prepare_data_for_training(historical_data):
     y = historical_data['total_load'].values
     return X, y
 
+def delete_outliers(historical_df):
+    data_mean, data_std = mean(historical_df["total_load"]), std(historical_df["total_load"])
+    cut_off = data_std * 1 #Räknas som outliers om de är mer än 2 standard deviations från medelvärdet. 
+    lower, upper = data_mean - cut_off, data_mean + cut_off
+
+    outliers = [x for x in historical_df["total_load"] if x < lower or x > upper]
+    print('Identified outliers: %d' % len(outliers))
+    ...
+    outliers_removed = [x for x in historical_df["total_load"] if x > lower and x < upper]
+    print(len(outliers_removed))
+    historical_df_outliers_removed = historical_df[(historical_df["total_load"] > lower) & (historical_df["total_load"] < upper)]
+    return historical_df_outliers_removed
+
+
 def train_svm_model_on_historical_data(historical_data):
     X, y = prepare_data_for_training(historical_data)
-    model = make_pipeline(StandardScaler(), SVR(C=1.0, epsilon=0.2))
-    model.fit(X, y)
-    return model
+   # model = make_pipeline(StandardScaler(), SVR(C=1.0, epsilon=0.2))
+    svr = SVR().fit(X, y)
+    return svr
 
 def predict_workload(model, X):
     predicted_workload = model.predict(X)
@@ -60,21 +75,24 @@ def return_target_data():
     
 #Tränas på all data som finns samlad om target device so far
 if __name__ == "__main__":
-    date = check_current_day()
-    previous_day = return_previous_day(date)
+    #date = check_current_day()
+    #previous_day = return_previous_day(date)
     historical_df = return_target_data()
 
     # Convert timestamp column to datetime (from mysql time)
     historical_df['timestamp'] = pd.to_datetime(historical_df['timestamp']) 
+    historical_df = delete_outliers(historical_df)
     svm_model = train_svm_model_on_historical_data(historical_df)
 
     last_date = historical_df['timestamp'].max()
+    first_date = historical_df['timestamp'].min()
     next_day = last_date + pd.DateOffset(days=1)
 
     #Prepare next day timestamps, starting from the beginning of the next day 
     next_day_timestamps = pd.date_range(start=next_day.replace(hour=0, minute=0, second=0), end=next_day, freq='T')
+    all_days= pd.date_range(start=first_date.replace(hour=0, minute=0, second=0), end=next_day+ pd.DateOffset(days=1), freq='T')
 
-    predicted_workload = predict_workload(svm_model, next_day_timestamps.astype(int).values.reshape(-1, 1)) #Fett tveksam på detta
+    predicted_workload = predict_workload(svm_model, all_days.astype(int).values.reshape(-1, 1)) #Fett tveksam på detta
     print("Predicted:",predicted_workload )
     print(next_day_timestamps)
     
@@ -82,7 +100,7 @@ if __name__ == "__main__":
     plt.plot(historical_df['timestamp'], historical_df['total_load'], label='Historical Data')
 
     # Plot the predicted workload for the next day after the historical one
-    plt.plot(next_day_timestamps, predicted_workload, label='Predicted Workload')
+    plt.plot(all_days, predicted_workload, label='Predicted Workload')
 
     plt.xlabel('Timestamp')
     plt.ylabel('Target Device Total Load')
