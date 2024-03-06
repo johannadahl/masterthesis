@@ -1,6 +1,7 @@
 import sys
 import mysql.connector
 
+#### test vad tusan är det som sker?!
 
 def execute_query(cursor, query):
    cursor.execute(query)
