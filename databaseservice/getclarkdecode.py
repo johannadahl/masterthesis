@@ -39,7 +39,7 @@ def main():
     queries = []
     for line in sys.stdin:
         try:
-            line = line.decode('utf-8') ## ändra här
+            line = line.encode('utf-8')
         except UnicodeDecodeError as decode_error:
             print(f"Skipping line with decoding error: {decode_error}")
             continue
