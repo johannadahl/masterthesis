@@ -22,7 +22,10 @@ def connect_and_insert_to_sql(queries):
 
 
        for query in queries:
+           
+           
            execute_query(cursor, query)
+
 
 
        connection.commit()
