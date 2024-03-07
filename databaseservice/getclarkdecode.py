@@ -4,13 +4,6 @@ import mysql.connector
 def execute_query(cursor, query):
     cursor.execute(query)
 
-def is_utf8(text):
-    try:
-        text.encode('utf-8').decode('utf-8')
-        return True
-    except UnicodeDecodeError:
-        return False
-
 def connect_and_insert_to_sql(queries):
     try:
         connection = mysql.connector.connect(
@@ -25,11 +18,11 @@ def connect_and_insert_to_sql(queries):
         cursor = connection.cursor()
 
         for query in queries:
-            # Check if the entire query has good characters
-            if is_utf8(query):
+            try:
                 execute_query(cursor, query)
-            else:
-                print(f"Skipping query with bad characters: {query}")
+            except UnicodeDecodeError as decode_error:
+                print(f"Skipping line with decoding error: {decode_error}")
+                continue
 
         connection.commit()
 
@@ -46,9 +39,9 @@ def main():
     queries = []
     for line in sys.stdin:
         try:
-            line = line.decode('utf-8')
-        except UnicodeDecodeError:
-            print(f"Ignoring line with non-UTF-8 characters: {line}")
+            line = line.decode('utf-8') ## ändra här
+        except UnicodeDecodeError as decode_error:
+            print(f"Skipping line with decoding error: {decode_error}")
             continue
 
         query = line.strip()
