@@ -33,7 +33,8 @@ def process_data(data_result, resample_frequency):
             
 
 def start_load(date,freq):
-    response = requests.get(QuerytoolBASE+"databaseservice",json={"start_date": date})
+    databasename = "allworldcup98"
+    response = requests.get(QuerytoolBASE+"databaseservice",json={"start_date": date,"databasename": databasename})
     data_result = response.json()
     process_data(data_result, freq)
 
