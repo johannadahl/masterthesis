@@ -64,7 +64,7 @@ def add_target_load(average_load, total_load,instances_scaled, timestamp):
             connection.close()
             print("MySQL connection closed")
 
-def fetch_and_return_data(start_date):
+def fetch_and_return_data(databasename,start_date):
     db_config = {
         "host": "127.0.0.1",
         "user": "root",
@@ -77,7 +77,7 @@ def fetch_and_return_data(start_date):
         connection = mysql.connector.connect(**db_config)
         cursor = connection.cursor()
         #Qquert som hämtar allt från worldcup från start_date
-        cursor.execute("SELECT timestamp, SUM(requests) as method_count FROM allworldcup98 WHERE timestamp LIKE '{}%' GROUP BY timestamp".format(start_date))
+        cursor.execute("SELECT timestamp, SUM(requests) as method_count FROM {} WHERE timestamp LIKE '{}%' GROUP BY timestamp".format(databasename, start_date))
 
         result = cursor.fetchall()
         return result
@@ -126,8 +126,9 @@ class DatabaseService(Resource):
 
     def get(self): ##Override! This is what happens when we send a get request to the Load generator (starts a load)
         start_date = request.json.get('start_date', None)
+        databasename = request.json.get('databasename', None)
         if start_date is not None:
-            data = fetch_and_return_data(start_date)
+            data = fetch_and_return_data(databasename,start_date)
             return make_response(jsonify(data), 200)
         
         previous_day = request.json.get('autoscaler', None)
