@@ -77,7 +77,7 @@ def fetch_and_return_data(start_date):
         connection = mysql.connector.connect(**db_config)
         cursor = connection.cursor()
         #Qquert som hämtar allt från worldcup från start_date
-        cursor.execute("SELECT timestamp, SUM(requests) as method_count FROM worldcup98 WHERE timestamp LIKE '{}%' GROUP BY timestamp".format(start_date))
+        cursor.execute("SELECT timestamp, SUM(requests) as method_count FROM allworldcup98 WHERE timestamp LIKE '{}%' GROUP BY timestamp".format(start_date))
 
         result = cursor.fetchall()
         return result
