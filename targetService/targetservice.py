@@ -26,8 +26,8 @@ LoadGenBASE = "http://127.0.0.1:8009/"
 LoadRecBASE = "http://127.0.0.1:8008/"
 
 SCALING_THRESHOLD = 0.2
-SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(hours=1), std_dev=timedelta(hours=1))
-SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(hours=1), std_dev=timedelta(hours=1))
+SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(hours=0.6), std_dev=timedelta(hours=0.3))
+SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(hours=0.6), std_dev=timedelta(hours=0.3))
 
 class TargetService(Resource):
 
@@ -41,8 +41,8 @@ class TargetService(Resource):
             ready_instances: int = 0,
             instance_load: float = 20000,
             instance_baseline_load: float = 10,
-            starting_load: float = 2000,
-            terminating_load: float = 2000
+            starting_load: float = 20000,
+            terminating_load: float = 20000
     ):
         self.current_time: datetime = current_time
         self.applied_load: float = applied_load
