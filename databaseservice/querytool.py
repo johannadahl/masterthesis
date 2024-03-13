@@ -3,14 +3,12 @@
 
 import mysql.connector
 import pandas as pd
-
-##under progress!!
+from datetime import timedelta
 from flask import Flask,jsonify, make_response,request
 from flask_restful import Api, Resource
 app = Flask(__name__)
 api = Api(app)
 
-#EJ klar. Detta är tanken att load recorder ska använda i framtiden för att lägga in Target service data i databasen. 
 def add_load_data(load_data):
     try:
         connection = mysql.connector.connect(user='root',  #Connects to Elsa-mysql container and the database simulationDB
@@ -64,7 +62,7 @@ def add_target_load(average_load, total_load,instances_scaled, timestamp):
             connection.close()
             print("MySQL connection closed")
 
-def fetch_and_return_data(databasename,start_date):
+def fetch_and_return_data(databasename,start_date,end_date):
     db_config = {
         "host": "127.0.0.1",
         "user": "root",
@@ -76,8 +74,8 @@ def fetch_and_return_data(databasename,start_date):
     try:
         connection = mysql.connector.connect(**db_config)
         cursor = connection.cursor()
-        #Qquert som hämtar allt från worldcup från start_date
-        cursor.execute("SELECT timestamp, SUM(requests) as method_count FROM {} WHERE timestamp LIKE '{}%' GROUP BY timestamp".format(databasename, start_date))
+        #Qquert som hämtar allt från worldcup från start_date tom end_date
+        cursor.execute("SELECT timestamp, SUM(requests) as method_count FROM {} WHERE timestamp BETWEEN '{}' AND '{}' GROUP BY timestamp".format(databasename, start_date, end_date))
 
         result = cursor.fetchall()
         return result
@@ -126,9 +124,15 @@ class DatabaseService(Resource):
 
     def get(self): ##Override! This is what happens when we send a get request to the Load generator (starts a load)
         start_date = request.json.get('start_date', None)
+        end_date = request.json.get('end_date', None)
         databasename = request.json.get('databasename', None)
-        if start_date is not None:
-            data = fetch_and_return_data(databasename,start_date)
+
+        if start_date and end_date is not None:
+            data = fetch_and_return_data(databasename,start_date,end_date)
+            return make_response(jsonify(data), 200)
+        elif start_date is not None:
+            end_date = start_date+timedelta(days=1)
+            data = fetch_and_return_data(databasename,start_date,end_date)
             return make_response(jsonify(data), 200)
         
         previous_day = request.json.get('autoscaler', None)
