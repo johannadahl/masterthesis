@@ -62,6 +62,7 @@ def add_target_load(average_load, total_load,instances_scaled, timestamp):
             connection.close()
             print("MySQL connection closed")
 
+##Aktuell!!
 def add_target_service_load(applied_load, experienced_load, current_time, instances):
     try:
         connection = mysql.connector.connect(user='root',  #Connects to Elsa-mysql container and the database simulationDB
@@ -143,6 +144,34 @@ def return_target_device_data(start_date):
         if connection.is_connected():
             connection.close()
 
+def return_target_service_data():
+    db_config = {
+        "host": "127.0.0.1",
+        "user": "root",
+        "password": "root",
+        "database": "simulationDB"
+    
+    }
+
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor()
+        #Query som hämtar all taget servic data
+        cursor.execute("SELECT * FROM target_service")
+                       
+        result = cursor.fetchall()
+        return result
+    
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return None
+    
+    finally:
+        if cursor:
+            cursor.close()
+        if connection.is_connected():
+            connection.close()
+
 
 class DatabaseService(Resource):
 
@@ -163,6 +192,12 @@ class DatabaseService(Resource):
         if previous_day is not None:
             target_data = return_target_device_data(previous_day)
             return make_response(jsonify(target_data), 200)
+        
+        target_service_data = request.json.get('target_service_data', None)
+        if target_service_data is not None:
+            print("Hej")
+            historical_data = return_target_service_data()
+            return make_response(jsonify(historical_data), 200)
     
     def post(self):
         total_load = request.json.get('total_load', None)
@@ -171,7 +206,6 @@ class DatabaseService(Resource):
         timestamp = request.json.get('time', None)
         if total_load is not None:
             add_target_load(average_load, total_load, instances_scaled, timestamp)
-        ##Lägg till kod för att lägga in "nya" target servicen i databasen
         applied_load = request.json.get('applied_load', None)
         experienced_load = request.json.get('experienced_load', None)
         current_time = request.json.get('current_time', None)
