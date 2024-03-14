@@ -26,8 +26,8 @@ LoadGenBASE = "http://127.0.0.1:8009/"
 LoadRecBASE = "http://127.0.0.1:8008/"
 
 SCALING_THRESHOLD = 0.2
-SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(hours=0.6), std_dev=timedelta(hours=0.3))
-SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(hours=0.6), std_dev=timedelta(hours=0.3))
+SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(hours=0.5), std_dev=timedelta(hours=0.01))
+SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(hours=0.5), std_dev=timedelta(hours=0.01))
 
 class TargetService(Resource):
 
@@ -273,7 +273,6 @@ def simulate_run():
 )
     response_data = response.json()
     parsed_data = json.loads(response_data)
-    print(response_data[0])
     try:
         df_hourly = pd.DataFrame(parsed_data)  # Convert JSON data to DataFrame
         df_hourly['time'] = pd.to_datetime(df_hourly['time'], unit='ms')
@@ -281,13 +280,13 @@ def simulate_run():
         df_hourly = df_hourly.reset_index()
         df_hourly['method_count'] = df_hourly['method_count'].astype(float)
         print("Received DataFrame:")
-        print(df_hourly)
+        print(df_hourly.head())
+        print(df_hourly.tail())
     except ValueError as e:
         print("Error:", e)
         
     # High load for a minute every 5 minutes
     per_hour_loads = df_hourly["method_count"]
-    print(per_hour_loads[0])
 
     current_time = df_hourly['time'].iloc[0]
     step = timedelta(hours=1)
@@ -315,6 +314,11 @@ def simulate_run():
         experienced_loads.append(service.experienced_load)
         ready_instances.append(service.count(ServiceInstanceState.READY))
         instances.append(len(service.instances))
+        requests.post(LoadRecBASE + "loadrecorder",
+                      json={"applied_load": service.applied_load, 
+                            "experienced_load": service.experienced_load,
+                            "current_time": str(service.current_time),
+                            "instances": len(service.instances)})
 
     hours = [
         i
@@ -348,7 +352,6 @@ def plot_loads(
 
 def main():
     args = simulate_run()
-    print(args)
     plot_loads(*args)
 
 if __name__ == "__main__":

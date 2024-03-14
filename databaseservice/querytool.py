@@ -62,6 +62,30 @@ def add_target_load(average_load, total_load,instances_scaled, timestamp):
             connection.close()
             print("MySQL connection closed")
 
+def add_target_service_load(applied_load, experienced_load, current_time, instances):
+    try:
+        connection = mysql.connector.connect(user='root',  #Connects to Elsa-mysql container and the database simulationDB
+                                            password='root',
+                                            host='127.0.0.1',
+                                            port = '3306',
+                                            database = 'simulationDB' 
+                                            )
+
+        cursor = connection.cursor()
+        cursor.execute("INSERT INTO target_service (TIMESTAMP, appliedLoad,experiencedLoad, instances) Values (%s,%s,%s,%s);",
+                       (current_time, applied_load, experienced_load, instances))
+        connection.commit()
+        cursor.close()
+
+
+    except mysql.connector.Error as error:
+        print("Error while connecting to MySQL:", error)
+
+    finally:
+        if 'connection' in locals():
+            cursor.close()
+            connection.close()
+            print("MySQL connection closed")
 def fetch_and_return_data(databasename,start_date,end_date):
     db_config = {
         "host": "127.0.0.1",
@@ -147,6 +171,13 @@ class DatabaseService(Resource):
         timestamp = request.json.get('time', None)
         if total_load is not None:
             add_target_load(average_load, total_load, instances_scaled, timestamp)
+        ##Lägg till kod för att lägga in "nya" target servicen i databasen
+        applied_load = request.json.get('applied_load', None)
+        experienced_load = request.json.get('experienced_load', None)
+        current_time = request.json.get('current_time', None)
+        instances = request.json.get('instances', None)
+        if applied_load is not None:
+            add_target_service_load(applied_load, experienced_load, current_time, instances)
         
 api.add_resource(DatabaseService, "/databaseservice") 
 
