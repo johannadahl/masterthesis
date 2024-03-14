@@ -26,8 +26,8 @@ LoadGenBASE = "http://127.0.0.1:8009/"
 LoadRecBASE = "http://127.0.0.1:8008/"
 
 SCALING_THRESHOLD = 0.2
-SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(hours=0.5), std_dev=timedelta(hours=0.01))
-SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(hours=0.5), std_dev=timedelta(hours=0.01))
+SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(hours=1), std_dev=timedelta(hours=0.01))
+SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(hours=1), std_dev=timedelta(hours=0.01))
 
 class TargetService(Resource):
 
