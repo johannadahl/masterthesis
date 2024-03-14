@@ -5,14 +5,16 @@
 ### Target Device
 
 The Target Device sends a get request to the load generator to start a simulated load. Calculates available instances to met the load. Simulates a real device. 
-To be able to run this script make sure ALL THREE flask servers for the other modules are running. Then, initiate a target device for a wanted starting date and request frequency using:
+To be able to run this script make sure ALL THREE flask servers for the other modules are running. Then, initiate a target device for a wanted starting date, end date and request frequency using:
+- By default it uses worldcup98 data. This has to be manually changed in load_generator.
+- It also creates a plot of the simulation.
 
 ````bash
-python3 targetservice/main.py start_date resample_frequency load_threshold
+python3 targetservice/target_service.py start_date end_date resample_frequency
 ````
 For example: 
 ````bash
-python3 targetservice/main.py 1998-05-02 10s
+python3 targetservice/target_service.py 1998-05-02 1998-05-06 60s
 ````
 
 ### Database service
@@ -30,7 +32,7 @@ Listens for GET requests that initiates a load, after that, workload is forced t
 Start the Load Generator flask server using:
 
 ````bash
-python3 loadgenerator.py
+python3 load_generator.py
 ````
 
 
