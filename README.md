@@ -1,6 +1,5 @@
 # Master Thesis Project
-#### Johanna Dahl
-#### Elsa Strömbäck
+#### Johanna Dahl and Elsa Strömbäck
 
 ### Target Device
 
