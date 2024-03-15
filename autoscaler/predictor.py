@@ -49,8 +49,6 @@ class Predictor():
         future_df = df_and_future.query('isFuture').copy()
         return future_df, df_and_future
 
-
-
     def predict(self, prediction_model, X_test,y_test):
 
         pass

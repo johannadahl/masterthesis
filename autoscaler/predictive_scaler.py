@@ -4,20 +4,21 @@ from flask import Flask, request, jsonify
 from predictor import Predictor  # SKAPA EN FIL FÖR ARIMA, XGBOOST OSV OCH SE TILL ATT DE ALLA HAR EN FUNCTION SOM HETER PREDICT LOAD
 import numpy as np
 from XGBoost_predictor import XGBoostPredictor
+import threading
 
 app = Flask(__name__)
+xgboost_predictor = XGBoostPredictor()
 
 @app.route("/predict", methods=["POST"])
 def predict():
     data = request.json 
-    #när man startar target servicen med start_date och end_date så kanske  
-   # predicted_load = predict_load(current_time)
-    
+    start_date = request.json.get('start_date', None)
+    end_date = request.json.get('start_date', None)
+    predicted_load = xgboost_predictor.predict_load(start_date, end_date)
+    return jsonify({"predicted_load": predicted_load})
 
-   # return jsonify({"predicted_load": predicted_load})
     
-def predict_with_xgboost():
-    xgboost_predictor = XGBoostPredictor()
+def create_and_train_xgboost_predictor():
     df = xgboost_predictor.import_historical_dataset()
     df = xgboost_predictor.preprocess_data(df)
     df = xgboost_predictor.remove_outliers(df)
@@ -27,10 +28,13 @@ def predict_with_xgboost():
     print(f'Score across folds {np.mean(scores):0.4f}')
     print(f'Fold scores:{scores}')
     xgboost_predictor.visualize_CV_predictions(prediction_model,df)
+    return xgboost_predictor
    
 
+def start_flask():
+    app.run(debug=False, port=8010,use_reloader=False, host='0.0.0.0') #Startar flask server för TargetService på en annan tråd! 
+
 if __name__ == "__main__":
-    predict_with_xgboost()
-
-
-    #app.run(debug=True, port=8010,host='0.0.0.0',use_reloader=False)  # Oklart hu
+    flask_thread = threading.Thread(target=start_flask) #Flaskservern måste köras på en egen tråd! annars kan man inte köra annan kod samtidigt 
+    flask_thread.start()
+    create_and_train_xgboost_predictor()
