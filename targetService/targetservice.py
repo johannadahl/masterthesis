@@ -24,6 +24,7 @@ app = Flask(__name__)
 api = Api(app)
 LoadGenBASE = "http://127.0.0.1:8009/"
 LoadRecBASE = "http://127.0.0.1:8008/"
+PredictorBASE = "http://127.0.0.1:8010/"
 
 SCALING_THRESHOLD = 0.2
 SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(hours=1), std_dev=timedelta(hours=0.01))
@@ -271,6 +272,10 @@ def simulate_run():
     LoadGenBASE + "load_generator",
     params={"start_date": start_date,"end_date":end_date, "resample_frequency": resample_frequency}
 )
+    requests.post(PredictorBASE + "predict", 
+                      json={"start_date": start_date,
+                            "end_date": end_date}
+                            )
     response_data = response.json()
     parsed_data = json.loads(response_data)
     try:

@@ -20,7 +20,12 @@ class LoadRecorder(Resource):
         timestamp = request.json.get('time', None)
         
         if total_load is not None:
-            requests.post(QuerytoolBASE + "databaseservice", json={"total_load": total_load, "average_load": average_load,"instances_scaled": instances_scaled, "time": timestamp})
+            requests.post(QuerytoolBASE + "databaseservice", 
+                          json={"total_load": total_load, 
+                                "average_load": average_load,
+                                "instances_scaled": instances_scaled, 
+                                "time": timestamp}
+                                )
             return {'status': 'success'} 
         
         ##Nya versionen

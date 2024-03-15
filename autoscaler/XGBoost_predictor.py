@@ -9,12 +9,9 @@ import seaborn as sns
 
 color_pal = sns.color_palette()
 
-
-
 class XGBoostPredictor(Predictor):
     def __init__(self):
-        self.model = "XGBoost"
-
+        self.model = None
 
     def create_features(self,df):
         """
@@ -24,7 +21,6 @@ class XGBoostPredictor(Predictor):
         df['hour'] = df.index.hour
         df['dayofweek'] = df.index.dayofweek
         return df
-    
     
     def split_train_test_sets(self,df):
         train = df.loc[df.index <= "1998-05-25 00:00:00"] #Hitta bättre lösning jao
@@ -107,6 +103,7 @@ class XGBoostPredictor(Predictor):
             preds.append(y_pred)
             score = np.sqrt(mean_squared_error(y_test, y_pred))
             scores.append(score)
+        self.model = reg
         return reg, preds, scores
 
     def add_lag_filters(self,df):
