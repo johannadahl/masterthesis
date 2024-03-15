@@ -8,7 +8,7 @@ from sklearn.metrics import mean_squared_error
 
 class Predictor():
     def __init__(self):
-        self.train_model
+        self.model = None
 
     def import_historical_dataset(self):
         QuerytoolBASE = "http://127.0.0.1:5000/"
@@ -36,22 +36,21 @@ class Predictor():
         upper_bound = Q3 + 1.5 * IQR
 
         df_filtered = df[(df['applied_load'] >= lower_bound) & (df['applied_load'] <= upper_bound)]
-        df_filtered.plot(style=".",figsize=(15,5))
-
         return df_filtered
 
+    def generate_future_values(self, df):
+        end_date = df.index.max()
+        # Create future dataframe
+        future = pd.date_range(end_date,'1995-08-05 00:00:00', freq='1h')
+        future_df = pd.DataFrame(index=future)
+        future_df['isFuture'] = True
+        df['isFuture'] = False
+        df_and_future = pd.concat([df, future_df])
+        future_df = df_and_future.query('isFuture').copy()
+        return future_df, df_and_future
 
-    def train_model(self):
-        """
-        Train the prediction model.
-        """
-        
-        #Return model
 
-    def predict(self, new_data):
-        """
-        Make predictions using the trained model.
-        """
-  
-        # Return predictions
+
+    def predict(self, prediction_model, X_test,y_test):
+
         pass
