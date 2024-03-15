@@ -195,7 +195,6 @@ class DatabaseService(Resource):
         
         target_service_data = request.json.get('target_service_data', None)
         if target_service_data is not None:
-            print("Hej")
             historical_data = return_target_service_data()
             return make_response(jsonify(historical_data), 200)
     
