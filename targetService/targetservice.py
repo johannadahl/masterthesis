@@ -236,6 +236,7 @@ def calculate_instances(
     processed_load = service.processed_load
     process_capability = service.total_load_capability
 
+    ## Här får vi multiplicera me framtida förväntade värdet. 
     process_utilization = 0 if processed_load == 0 else \
         processed_load / process_capability
 
@@ -272,10 +273,14 @@ def simulate_run():
     LoadGenBASE + "load_generator",
     params={"start_date": start_date,"end_date":end_date, "resample_frequency": resample_frequency}
 )
-    requests.post(PredictorBASE + "predict", 
+    predictions = requests.post(PredictorBASE + "predict", 
                       json={"start_date": start_date,
                             "end_date": end_date}
                             )
+    predictions = predictions.json()
+    predicted_load_list = predictions['predicted_load']
+
+    print(predicted_load_list)
     response_data = response.json()
     parsed_data = json.loads(response_data)
     try:
@@ -330,14 +335,15 @@ def simulate_run():
         for i in range(len(df_hourly))
     ]
 
-    return hours, per_hour_loads, experienced_loads, instances, ready_instances
+    return hours, per_hour_loads, experienced_loads, instances, ready_instances, predicted_load_list
 
 def plot_loads(
         hours: list[int],
         applied_loads: list[float],
         experienced_loads: list[float],
         total_instances: list[int],
-        ready_instances: list[int]
+        ready_instances: list[int],
+        predicted_load_list: list[float]
 ):
     fig, ax = plt.subplots()
     ax2 = ax.twinx()
@@ -347,6 +353,7 @@ def plot_loads(
     # lines.extend(ax2.plot(minutes, total_instances, label='Total instances'))
     lines.extend(ax.plot(hours, experienced_loads, '-r', label='Experienced load'))
     lines.extend(ax.plot(hours, applied_loads, '-g', label='Applied load'))
+    lines.extend(ax.plot(hours, predicted_load_list, '-b', label='Predictions using xgboost'))
 
     ax.set(xlabel='Time (hours)', ylabel='Load', title='System load')
     ax2.set(ylabel='Instances')

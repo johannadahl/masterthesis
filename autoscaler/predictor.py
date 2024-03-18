@@ -48,3 +48,16 @@ class Predictor():
         df_and_future = pd.concat([df, future_df])
         future_df = df_and_future.query('isFuture').copy()
         return future_df, df_and_future
+    
+    def generate_X_values(self, start_date, end_date):
+        future = pd.date_range(start_date, end_date, freq='1h')
+        future_df = pd.DataFrame(index=future)
+        future_df = future_df.iloc[:-1]  # Exclude the last timestamp
+        return future_df
+    
+    def predict_load(self, reg, df):
+        FEATURES = ['hour', 'dayofweek',
+                'lag1','lag2','lag3','lag4']
+        
+        df['pred'] = reg.predict(df[FEATURES])
+        return df['pred']
