@@ -103,6 +103,7 @@ class XGBoostPredictor(Predictor):
             preds.append(y_pred)
             score = np.sqrt(mean_squared_error(y_test, y_pred))
             scores.append(score)
+
         self.model = reg
         return reg, preds, scores
 
@@ -150,4 +151,24 @@ class XGBoostPredictor(Predictor):
                                     title='Target Service predictions')
         plt.legend(['Historical data workload/hour ','Predictions using XGBoost regressor'])
 
+        plt.show()
+    
+    def predict_and_plot_future(self, df_and_future,reg):
+        FEATURES = ['hour', 'dayofweek',
+                'lag1','lag2','lag3','lag4']
+        future_w_features = df_and_future.query('isFuture').copy()
+
+        future_w_features['pred'] = reg.predict(future_w_features[FEATURES])
+
+        df_and_future['applied_load'].plot(figsize=(10, 5),
+                                    color=color_pal[2],
+                                    ms=1,
+                                    lw=1,)
+        future_w_features['pred'].plot(figsize=(10, 5),
+                                    color=color_pal[3],
+                                    ms=1,
+                                    lw=1,
+                                    title='Worldcup98 Predictions')
+
+        plt.legend(['Predictions using XGBoost regressor','Historical data'])
         plt.show()
