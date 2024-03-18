@@ -35,7 +35,7 @@ def return_all_simulation_data(data_result, resample_frequency):
     if data_result is not None:
         column_names = ["time", "method_count"]
         df = pd.DataFrame(data_result, columns=column_names)
-        df['time'] = pd.to_datetime(df['time'])
+        df['time'] = pd.to_datetime(df['time'], format='%a, %d %b %Y %H:%M:%S GMT')
         df['method_count'] = df['method_count'].astype(int)
 
         df_frequency = df.set_index('time').resample(resample_frequency).sum()
