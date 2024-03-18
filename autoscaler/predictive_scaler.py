@@ -11,11 +11,17 @@ xgboost_predictor = XGBoostPredictor()
 
 @app.route("/predict", methods=["POST"])
 def predict():
-    data = request.json 
     start_date = request.json.get('start_date', None)
     end_date = request.json.get('end_date', None)
-    predicted_load = xgboost_predictor.predict_load(start_date, end_date)
-    return jsonify({"predicted_load": predicted_load})
+    df = xgboost_predictor.generate_X_values(start_date, end_date)
+    df = xgboost_predictor.create_features(df)
+    df['applied_load'] = None
+    print(df)
+    df = xgboost_predictor.add_lag_filters(df) 
+    print(df)
+    predicted_load = xgboost_predictor.predict_load(xgboost_predictor.model, df)
+    predicted_load_list = predicted_load.tolist()
+    return jsonify({"predicted_load": predicted_load_list})
 
     
 def create_and_train_xgboost_predictor():
