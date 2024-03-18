@@ -3,7 +3,7 @@ import numpy as np
 import requests
 import xgboost as xgb
 from sklearn.metrics import mean_squared_error
-
+from datetime import timedelta
 ## Skapar en abstract för en prediction model 
 
 class Predictor():
@@ -38,17 +38,13 @@ class Predictor():
         df_filtered = df[(df['applied_load'] >= lower_bound) & (df['applied_load'] <= upper_bound)]
         return df_filtered
 
-    def generate_future_values(self, df):
+    def generate_future_values(self, df,end_date):
         end_date = df.index.max()
         # Create future dataframe
-        future = pd.date_range(end_date,'1995-08-05 00:00:00', freq='1h')
+        future = pd.date_range(end_date,end_date+timedelta(days=5), freq='1h')
         future_df = pd.DataFrame(index=future)
         future_df['isFuture'] = True
         df['isFuture'] = False
         df_and_future = pd.concat([df, future_df])
         future_df = df_and_future.query('isFuture').copy()
         return future_df, df_and_future
-
-    def predict(self, prediction_model, X_test,y_test):
-
-        pass
