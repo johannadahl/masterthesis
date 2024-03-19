@@ -5,7 +5,7 @@
 
 The Target Device sends a get request to the load generator to start a simulated load. Calculates available instances to met the load. Simulates a real device. 
 To be able to run this script make sure ALL THREE flask servers for the other modules are running. Then, initiate a target device for a wanted starting date, end date and request frequency using:
-- By default it uses worldcup98 data. This has to be manually changed in load_generator.
+- By default it uses NASA data. This has to be manually changed in load_generator.
 - It also creates a plot of the simulation.
 
 ````bash
