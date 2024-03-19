@@ -44,7 +44,7 @@ def return_all_simulation_data(data_result, resample_frequency):
             
 
 def start_load(start_date,end_date,freq):
-    databasename = "allworldcup98"
+    databasename = "nasa_full"
     response = requests.get(QuerytoolBASE+"databaseservice",json={"start_date": start_date,"end_date":end_date, "databasename": databasename})
     data_result = response.json()
     data = return_all_simulation_data(data_result, freq)

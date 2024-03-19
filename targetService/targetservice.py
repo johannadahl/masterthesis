@@ -27,8 +27,8 @@ LoadRecBASE = "http://127.0.0.1:8008/"
 PredictorBASE = "http://127.0.0.1:8010/"
 
 SCALING_THRESHOLD = 0.2
-SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(hours=1), std_dev=timedelta(hours=0.01))
-SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(hours=1), std_dev=timedelta(hours=0.01))
+SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(hours=2), std_dev=timedelta(hours=0.01))
+SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(hours=2), std_dev=timedelta(hours=0.01))
 
 class TargetService(Resource):
 
@@ -40,10 +40,10 @@ class TargetService(Resource):
             scale_down_time: ScalingTimeOptions,
             starting_instances: int = 0,
             ready_instances: int = 0,
-            instance_load: float = 20000,
-            instance_baseline_load: float = 10,
-            starting_load: float = 20000,
-            terminating_load: float = 20000
+            instance_load: float = 1000,
+            instance_baseline_load: float = 1,
+            starting_load: float = 1000,
+            terminating_load: float = 1000,
     ):
         self.current_time: datetime = current_time
         self.applied_load: float = applied_load
@@ -230,13 +230,22 @@ class TargetService(Resource):
 def start_flask():
     app.run(debug=False, port=8003,use_reloader=False, host='0.0.0.0') #Startar flask server för TargetService på en annan tråd! 
 
+def add_future_knowledge(current_load, future_load):
+    if future_load > current_load:
+        delta_instances = calculate_instances(current_load, future_load)
+    elif future_load < current_load:
+        delta_instances = calculate_instances(current_load, future_load)
+    else:
+        delta_instances = 0 
+
+    return delta_instances
+
 def calculate_instances(
-        service: TargetService
+        service: TargetService, future_load: float
 ) -> int:
     processed_load = service.processed_load
     process_capability = service.total_load_capability
 
-    ## Här får vi multiplicera me framtida förväntade värdet. 
     process_utilization = 0 if processed_load == 0 else \
         processed_load / process_capability
 
@@ -248,6 +257,14 @@ def calculate_instances(
         return 0
 
     scaling_factor = process_utilization / desired_mean_load
+    scaling_factor_future = future_load / desired_mean_load if future_load is not None else None
+
+    if scaling_factor_future is not None:
+        if scaling_factor_future > 1 and scaling_factor > 1:
+            scaling_factor = max(scaling_factor, scaling_factor_future)
+        elif scaling_factor_future < 1 and scaling_factor < 1:
+            scaling_factor = min(scaling_factor, scaling_factor_future)
+
     current_instances = service.count(ServiceInstanceState.READY)
     starting_instances = service.count(ServiceInstanceState.STARTING)
     terminating_instances = service.count(ServiceInstanceState.TERMINATING)
@@ -259,13 +276,23 @@ def calculate_instances(
     up_instances = math.ceil(
         (current_instances + starting_instances) * scaling_factor
     )
-
     if scaling_factor > 1:
         return up_instances
     elif current_instances - down_instances > 0:
         return -down_instances
-
     return 0
+
+def remove_outliers(df):
+        Q1 = df['method_count'].quantile(0.35)
+        Q3 = df['method_count'].quantile(0.90)
+
+        IQR = Q3 - Q1
+
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+
+        df_filtered = df[(df['method_count'] >= lower_bound) & (df['method_count'] <= upper_bound)]
+        return df_filtered
 
 
 def simulate_run():
@@ -273,18 +300,21 @@ def simulate_run():
     LoadGenBASE + "load_generator",
     params={"start_date": start_date,"end_date":end_date, "resample_frequency": resample_frequency}
 )
+    response_data = response.json()
+    parsed_data = json.loads(response_data)
+    
     predictions = requests.post(PredictorBASE + "predict", 
                       json={"start_date": start_date,
                             "end_date": end_date}
                             )
-    predictions = predictions.json()
-    predicted_load_list = predictions['predicted_load']
+    predictions_data = predictions.json()
+    df_predictions = pd.DataFrame(predictions_data)
+    df_predictions['index'] = pd.to_datetime(df_predictions['index'], unit='ms')
+    print(df_predictions)
 
-    print(predicted_load_list)
-    response_data = response.json()
-    parsed_data = json.loads(response_data)
     try:
         df_hourly = pd.DataFrame(parsed_data)  # Convert JSON data to DataFrame
+        df_hourly = remove_outliers(df_hourly)
         df_hourly['time'] = pd.to_datetime(df_hourly['time'], unit='ms')
         df_hourly = df_hourly.resample('H', on='time').sum()
         df_hourly = df_hourly.reset_index()
@@ -313,29 +343,50 @@ def simulate_run():
     ready_instances = []
     instances = []
 
+    predicted_experienced_loads = []
+    predicted_ready_instances = []
+    predicted_instances = []
+
     for load in per_hour_loads:
-        current_time += step
+
+        if (current_time + step + step) in df_predictions['index'].values:
+            future_load = df_predictions.loc[df_predictions['index'] == (current_time + step + step), 'pred'].iloc[0]
+        else:
+            future_load = None  # No prediction available
+        
         service.update(
             current_time=current_time,
             applied_load=load,
-            delta_instances=calculate_instances
+            delta_instances=lambda service: calculate_instances(service, None)
         )
 
         experienced_loads.append(service.experienced_load)
         ready_instances.append(service.count(ServiceInstanceState.READY))
         instances.append(len(service.instances))
+
         requests.post(LoadRecBASE + "loadrecorder",
                       json={"applied_load": service.applied_load, 
                             "experienced_load": service.experienced_load,
                             "current_time": str(service.current_time),
                             "instances": len(service.instances)})
+        #Simulate service update with prediction values aswell
+        service.update(
+            current_time=current_time,
+            applied_load=load,
+            delta_instances=lambda service: calculate_instances(service, future_load)
+        )
+        predicted_experienced_loads.append(service.experienced_load)
+        predicted_ready_instances.append(service.count(ServiceInstanceState.READY))
+        predicted_instances.append(len(service.instances))
+
+        current_time += step
 
     hours = [
         i
         for i in range(len(df_hourly))
     ]
-
-    return hours, per_hour_loads, experienced_loads, instances, ready_instances, predicted_load_list
+    predicted_load_list = df_predictions['pred'].tolist()
+    return hours, per_hour_loads, experienced_loads, instances, ready_instances, predicted_load_list, predicted_experienced_loads, predicted_instances, predicted_ready_instances
 
 def plot_loads(
         hours: list[int],
@@ -343,23 +394,34 @@ def plot_loads(
         experienced_loads: list[float],
         total_instances: list[int],
         ready_instances: list[int],
-        predicted_load_list: list[float]
+        predicted_load_list: list[float], 
+        predicted_experienced_loads: list[float], 
+        predicted_instances: list[int], 
+        predicted_ready_instances: list[int]
 ):
     fig, ax = plt.subplots()
     ax2 = ax.twinx()
 
-    lines = []
-    lines.extend(ax2.plot(hours, ready_instances, '-', label='Ready instances'))
-    # lines.extend(ax2.plot(minutes, total_instances, label='Total instances'))
-    lines.extend(ax.plot(hours, experienced_loads, '-r', label='Experienced load'))
-    lines.extend(ax.plot(hours, applied_loads, '-g', label='Applied load'))
-    lines.extend(ax.plot(hours, predicted_load_list, '-b', label='Predictions using xgboost'))
+    fig, axs = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
 
-    ax.set(xlabel='Time (hours)', ylabel='Load', title='System load')
-    ax2.set(ylabel='Instances')
-    ax.grid()
-    ax.legend(lines, [line.get_label() for line in lines], loc=0)
-    ax2.set_ylabel('Instances')
+    axs[0].plot(hours, experienced_loads, '-r', label='Experienced load (Without Prediction)')
+    axs[0].plot(hours, predicted_experienced_loads, '-g', label='Experienced load (With Prediction)')
+    axs[0].plot(hours, predicted_load_list, color='orange',  label='Predicted applied Load')
+    axs[0].plot(hours, applied_loads, '-b', label='Applied load')
+    axs[0].set_ylabel('Load')
+    axs[0].grid()
+    axs[0].legend()
+
+    axs[1].plot(hours, total_instances, '-r', label='Total instances (Without Prediction)')
+    axs[1].plot(hours, predicted_instances, '-g', label='Total instances (With Prediction)')
+    axs[1].plot(hours, ready_instances, '-b', label='Ready instances (Without Prediction)')
+    axs[1].plot(hours, predicted_ready_instances, color='orange', label='Ready instances (With Prediction)')
+    axs[1].set_xlabel('Time (hours)')
+    axs[1].set_ylabel('Instances')
+    axs[1].grid()
+    axs[1].legend()
+
+    plt.tight_layout()
     plt.show()
 
 def main():

@@ -14,8 +14,11 @@ class Predictor():
         QuerytoolBASE = "http://127.0.0.1:5000/"
         response = requests.get(QuerytoolBASE+"databaseservice",json={"target_service_data": "True"})
         data_result = response.json()
-        historical_df = pd.DataFrame(data_result, columns=["timestamp", "applied_load", "experienced_load", "instances"])
-        return historical_df
+        if data_result != []:
+            historical_df = pd.DataFrame(data_result, columns=["timestamp", "applied_load", "experienced_load", "instances"])
+            return historical_df
+        else:
+            return None
     
     def preprocess_data(self,df):
         df['timestamp'] = pd.to_datetime(df['timestamp'],format='%a, %d %b %Y %H:%M:%S GMT') 
@@ -52,12 +55,12 @@ class Predictor():
     def generate_X_values(self, start_date, end_date):
         future = pd.date_range(start_date, end_date, freq='1h')
         future_df = pd.DataFrame(index=future)
-        future_df = future_df.iloc[:-1]  # Exclude the last timestamp
+      #  future_df = future_df.iloc[:-1]  # Exclude the last timestamp
         return future_df
     
     def predict_load(self, reg, df):
         FEATURES = ['hour', 'dayofweek',
-                'lag1','lag2','lag3','lag4']
+                'lag1','lag2','lag3']
         
         df['pred'] = reg.predict(df[FEATURES])
-        return df['pred']
+        return df
