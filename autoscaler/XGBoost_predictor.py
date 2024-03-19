@@ -28,7 +28,7 @@ class XGBoostPredictor(Predictor):
         return train,test
     
     def split_X_and_Y(self,train,test):
-        FEATURES = ['hour', 'dayofweek','lag1','lag2','lag3','lag4']
+        FEATURES = ['hour', 'dayofweek','lag1','lag2','lag3']
         TARGET = 'applied_load'
 
         X_train = train[FEATURES]
@@ -81,7 +81,7 @@ class XGBoostPredictor(Predictor):
             test = self.create_features(test)
 
             FEATURES = ['hour', 'dayofweek',
-                        'lag1','lag2','lag3','lag4']
+                        'lag1','lag2','lag3']
             TARGET = 'applied_load'
             X_train = train[FEATURES]
             y_train = train[TARGET]
@@ -114,7 +114,6 @@ class XGBoostPredictor(Predictor):
         df['lag1'] = (df.index - pd.Timedelta('7 days')).map(target_map)
         df['lag2'] = (df.index - pd.Timedelta('14 days')).map(target_map)
         df['lag3'] = (df.index - pd.Timedelta('21 days')).map(target_map)
-        df['lag4'] = (df.index - pd.Timedelta('28 days')).map(target_map)
         return df
     
     def show_feature_importance(self,reg):
@@ -136,7 +135,7 @@ class XGBoostPredictor(Predictor):
     
     def visualize_CV_predictions(self,reg,df):
         FEATURES = ['hour', 'dayofweek',
-                'lag1','lag2','lag3','lag4']
+                'lag1','lag2','lag3']
         
         df['pred'] = reg.predict(df[FEATURES])
 
@@ -155,7 +154,7 @@ class XGBoostPredictor(Predictor):
     
     def predict_and_plot_future(self, df_and_future,reg):
         FEATURES = ['hour', 'dayofweek',
-                'lag1','lag2','lag3','lag4']
+                'lag1','lag2','lag3']
         future_w_features = df_and_future.query('isFuture').copy()
 
         future_w_features['pred'] = reg.predict(future_w_features[FEATURES])
