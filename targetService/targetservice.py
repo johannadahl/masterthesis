@@ -40,7 +40,7 @@ class TargetService(Resource):
             scale_down_time: ScalingTimeOptions,
             starting_instances: int = 0,
             ready_instances: int = 0,
-            instance_load: float = 1000,
+            instance_load: float = 2000,
             instance_baseline_load: float = 1,
             starting_load: float = 1000,
             terminating_load: float = 1000,
@@ -253,11 +253,19 @@ def calculate_instances(
     upper_threshold = desired_mean_load + SCALING_THRESHOLD
     lower_threshold = desired_mean_load - SCALING_THRESHOLD
 
-    if lower_threshold < process_utilization < upper_threshold:
-        return 0
+    if future_load is not None:
+        future_processed_load = min(future_load, process_capability)
+        future_process_utilization = future_processed_load / process_capability
 
+        if lower_threshold < process_utilization < upper_threshold:
+            if lower_threshold < future_process_utilization < upper_threshold:
+                return 0
+    else: 
+        if lower_threshold < process_utilization < upper_threshold:
+           return 0
+        
     scaling_factor = process_utilization / desired_mean_load
-    scaling_factor_future = future_load / desired_mean_load if future_load is not None else None
+    scaling_factor_future = future_process_utilization / desired_mean_load if future_load is not None else None
 
     if scaling_factor_future is not None:
         if scaling_factor_future > 1 and scaling_factor > 1:
@@ -314,14 +322,16 @@ def simulate_run():
 
     try:
         df_hourly = pd.DataFrame(parsed_data)  # Convert JSON data to DataFrame
-        df_hourly = remove_outliers(df_hourly)
+      #  df_hourly = remove_outliers(df_hourly)
         df_hourly['time'] = pd.to_datetime(df_hourly['time'], unit='ms')
         df_hourly = df_hourly.resample('H', on='time').sum()
         df_hourly = df_hourly.reset_index()
         df_hourly['method_count'] = df_hourly['method_count'].astype(float)
+        last_row_timestamp = df_hourly.iloc[-1]['time']
+        if last_row_timestamp == end_date:
+            df_hourly = df_hourly.iloc[:-1]  # Remove the last row
         print("Received DataFrame:")
-        print(df_hourly.head())
-        print(df_hourly.tail())
+        print(df_hourly)
     except ValueError as e:
         print("Error:", e)
         
@@ -349,8 +359,8 @@ def simulate_run():
 
     for load in per_hour_loads:
 
-        if (current_time + step + step) in df_predictions['index'].values:
-            future_load = df_predictions.loc[df_predictions['index'] == (current_time + step + step), 'pred'].iloc[0]
+        if (current_time + step) in df_predictions['index'].values:
+            future_load = df_predictions.loc[df_predictions['index'] == (current_time + step), 'pred'].iloc[0]
         else:
             future_load = None  # No prediction available
         
