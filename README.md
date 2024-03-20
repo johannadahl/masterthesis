@@ -15,6 +15,11 @@ For example:
 ````bash
 python3 targetservice/target_service.py 1998-05-02 1998-05-06 60s
 ````
+### Start All Services
+Start all  modules except for the targetservice at the same time (if you don't want them to start individually):
+````bash
+python3 start_modules.py
+````
 
 ### Database service
 Preforms queries/interaction with the MySql database. Listens to GET requests from Load generator and Autoscaler and POST requests from Load recorder. 
