@@ -27,8 +27,8 @@ LoadRecBASE = "http://127.0.0.1:8008/"
 PredictorBASE = "http://127.0.0.1:8010/"
 
 SCALING_THRESHOLD = 0.2
-SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(hours=2), std_dev=timedelta(hours=0.01))
-SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(hours=2), std_dev=timedelta(hours=0.01))
+SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(hours=1), std_dev=timedelta(hours=0.01))
+SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(hours=1), std_dev=timedelta(hours=0.01))
 
 class TargetService(Resource):
 
@@ -253,9 +253,11 @@ def calculate_instances(
     upper_threshold = desired_mean_load + SCALING_THRESHOLD
     lower_threshold = desired_mean_load - SCALING_THRESHOLD
 
+    scaling_factor_future = None
     if future_load is not None:
         future_processed_load = min(future_load, process_capability)
         future_process_utilization = future_processed_load / process_capability
+        scaling_factor_future = future_process_utilization / desired_mean_load
 
         if lower_threshold < process_utilization < upper_threshold:
             if lower_threshold < future_process_utilization < upper_threshold:
@@ -265,7 +267,6 @@ def calculate_instances(
            return 0
         
     scaling_factor = process_utilization / desired_mean_load
-    scaling_factor_future = future_process_utilization / desired_mean_load if future_load is not None else None
 
     if scaling_factor_future is not None:
         if scaling_factor_future > 1 and scaling_factor > 1:
@@ -327,8 +328,9 @@ def simulate_run():
         df_hourly = df_hourly.resample('H', on='time').sum()
         df_hourly = df_hourly.reset_index()
         df_hourly['method_count'] = df_hourly['method_count'].astype(float)
-        last_row_timestamp = df_hourly.iloc[-1]['time']
-        if last_row_timestamp == end_date:
+        last_row_timestamp = df_hourly.iloc[-1]['time'].date()
+        end_date_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+        if last_row_timestamp == end_date_date:
             df_hourly = df_hourly.iloc[:-1]  # Remove the last row
         print("Received DataFrame:")
         print(df_hourly)
@@ -346,7 +348,7 @@ def simulate_run():
         applied_load=per_hour_loads[0],
         scale_up_time=SCALE_UP_TIME,
         scale_down_time=SCALE_DOWN_TIME,
-        ready_instances=4
+        ready_instances=2
     )
 
     experienced_loads = []
@@ -360,7 +362,7 @@ def simulate_run():
     for load in per_hour_loads:
 
         if (current_time + step) in df_predictions['index'].values:
-            future_load = df_predictions.loc[df_predictions['index'] == (current_time + step), 'pred'].iloc[0]
+            future_load = df_predictions.loc[df_predictions['index'] == (current_time  + step), 'pred'].iloc[0]
         else:
             future_load = None  # No prediction available
         
@@ -422,8 +424,8 @@ def plot_loads(
     axs[0].grid()
     axs[0].legend()
 
-    axs[1].plot(hours, total_instances, '-r', label='Total instances (Without Prediction)')
-    axs[1].plot(hours, predicted_instances, '-g', label='Total instances (With Prediction)')
+   # axs[1].plot(hours, total_instances, '-r', label='Total instances (Without Prediction)')
+   # axs[1].plot(hours, predicted_instances, '-g', label='Total instances (With Prediction)')
     axs[1].plot(hours, ready_instances, '-b', label='Ready instances (Without Prediction)')
     axs[1].plot(hours, predicted_ready_instances, color='orange', label='Ready instances (With Prediction)')
     axs[1].set_xlabel('Time (hours)')
