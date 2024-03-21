@@ -411,8 +411,7 @@ def plot_loads(
         predicted_instances: list[int], 
         predicted_ready_instances: list[int]
 ):
-    fig, ax = plt.subplots()
-    ax2 = ax.twinx()
+
 
     fig, axs = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
 
