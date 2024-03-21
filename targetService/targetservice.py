@@ -381,7 +381,7 @@ def simulate_run():
         #Simulate service update with prediction values aswell
         future_service.update(
             current_time=current_time,
-            applied_load=future_load,
+            applied_load=load,
             delta_instances=lambda future_service: calculate_instances(future_service, future_load)
         )
         predicted_experienced_loads.append(future_service.experienced_load)
