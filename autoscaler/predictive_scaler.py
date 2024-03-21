@@ -7,6 +7,7 @@ import threading
 app = Flask(__name__)
 xgboost_predictor = XGBoostPredictor()
 
+
 @app.route("/predict", methods=["POST"])
 def predict():
     start_date = request.json.get('start_date', None)
@@ -34,7 +35,7 @@ def create_and_train_xgboost_predictor():
         prediction_model, predictions, scores = xgboost_predictor.preform_cross_validation(df)
         print(f'Score across folds {np.mean(scores):0.4f}')
         print(f'Fold scores:{scores}')
-        xgboost_predictor.visualize_CV_predictions(prediction_model,df)
+        xgboost_predictor.visualize_CV_predictions(xgboost_predictor.model,df)
     return xgboost_predictor
 
 def predict_future_with_xgboost(xgboost_predictor, start_date, end_date):
@@ -53,6 +54,7 @@ def start_flask():
 
 if __name__ == "__main__":
     xgboost_predictor = create_and_train_xgboost_predictor()
+    
     flask_thread = threading.Thread(target=start_flask) #Flaskservern måste köras på en egen tråd! annars kan man inte köra annan kod samtidigt 
     flask_thread.start()
    # predict_future_with_xgboost(xgboost_predictor)
