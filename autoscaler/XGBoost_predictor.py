@@ -44,7 +44,7 @@ class XGBoostPredictor(Predictor):
         reg.fit(X_train, y_train,
         eval_set=[(X_train, y_train), (X_test, y_test)],
         verbose=100)
-        self.reg = reg
+        self.model = reg
         return reg
 
     def plot_cross_validation_folds(self,df,splits,test_size,gap):
@@ -68,7 +68,7 @@ class XGBoostPredictor(Predictor):
         plt.show()
 
     def preform_cross_validation(self,df):
-        tss = TimeSeriesSplit(n_splits=10, test_size=24, gap=0)
+        tss = TimeSeriesSplit(n_splits=10, test_size=24, gap=24)
         fold = 0
         preds = []
         scores = []

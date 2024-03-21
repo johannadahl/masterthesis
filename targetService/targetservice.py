@@ -27,8 +27,8 @@ LoadRecBASE = "http://127.0.0.1:8008/"
 PredictorBASE = "http://127.0.0.1:8010/"
 
 SCALING_THRESHOLD = 0.2
-SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(hours=2), std_dev=timedelta(hours=0.01))
-SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(hours=2), std_dev=timedelta(hours=0.01))
+SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(hours=1), std_dev=timedelta(hours=0.01))
+SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(hours=1), std_dev=timedelta(hours=0.01))
 
 class TargetService(Resource):
 
@@ -262,7 +262,7 @@ def calculate_instances(
     if scaling_factor_future is not None:
         if scaling_factor_future > 1 or scaling_factor > 1:
             scaling_factor = max(scaling_factor, scaling_factor_future)
-        elif scaling_factor_future < 1 and scaling_factor < 1:
+        else:
             scaling_factor = min(scaling_factor, scaling_factor_future)
 
     current_instances = service.count(ServiceInstanceState.READY)
@@ -328,7 +328,6 @@ def simulate_run():
     except ValueError as e:
         print("Error:", e)
         
-    # High load for a minute every 5 minutes
     per_hour_loads = df_hourly["method_count"]
 
     current_time = df_hourly['time'].iloc[0]
@@ -382,7 +381,7 @@ def simulate_run():
         #Simulate service update with prediction values aswell
         future_service.update(
             current_time=current_time,
-            applied_load=load,
+            applied_load=future_load,
             delta_instances=lambda future_service: calculate_instances(future_service, future_load)
         )
         predicted_experienced_loads.append(future_service.experienced_load)
