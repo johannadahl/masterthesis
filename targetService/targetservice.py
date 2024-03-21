@@ -27,8 +27,8 @@ LoadRecBASE = "http://127.0.0.1:8008/"
 PredictorBASE = "http://127.0.0.1:8010/"
 
 SCALING_THRESHOLD = 0.2
-SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(hours=1), std_dev=timedelta(hours=0.01))
-SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(hours=1), std_dev=timedelta(hours=0.01))
+SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(hours=2), std_dev=timedelta(hours=0.01))
+SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(hours=2), std_dev=timedelta(hours=0.01))
 
 class TargetService(Resource):
 
@@ -177,7 +177,7 @@ class TargetService(Resource):
         return total_load, processed_load, total_load_capability
 
     def update(self, current_time: datetime, applied_load: float,
-               delta_instances: int | Callable[[TargetService], int]):
+               delta_instances: int| Callable[[TargetService], int]):
         """
         Updates the instances of the service with the current time, and scales the
         system if necessary.
@@ -230,15 +230,6 @@ class TargetService(Resource):
 def start_flask():
     app.run(debug=False, port=8003,use_reloader=False, host='0.0.0.0') #Startar flask server för TargetService på en annan tråd! 
 
-def add_future_knowledge(current_load, future_load):
-    if future_load > current_load:
-        delta_instances = calculate_instances(current_load, future_load)
-    elif future_load < current_load:
-        delta_instances = calculate_instances(current_load, future_load)
-    else:
-        delta_instances = 0 
-
-    return delta_instances
 
 def calculate_instances(
         service: TargetService, future_load: float
@@ -269,7 +260,7 @@ def calculate_instances(
     scaling_factor = process_utilization / desired_mean_load
 
     if scaling_factor_future is not None:
-        if scaling_factor_future > 1 and scaling_factor > 1:
+        if scaling_factor_future > 1 or scaling_factor > 1:
             scaling_factor = max(scaling_factor, scaling_factor_future)
         elif scaling_factor_future < 1 and scaling_factor < 1:
             scaling_factor = min(scaling_factor, scaling_factor_future)
@@ -350,6 +341,13 @@ def simulate_run():
         scale_down_time=SCALE_DOWN_TIME,
         ready_instances=2
     )
+    future_service = TargetService(
+        current_time=current_time,
+        applied_load=per_hour_loads[0],
+        scale_up_time=SCALE_UP_TIME,
+        scale_down_time=SCALE_DOWN_TIME,
+        ready_instances=2
+    )
 
     experienced_loads = []
     ready_instances = []
@@ -382,14 +380,14 @@ def simulate_run():
                             "current_time": str(service.current_time),
                             "instances": len(service.instances)})
         #Simulate service update with prediction values aswell
-        service.update(
+        future_service.update(
             current_time=current_time,
             applied_load=load,
-            delta_instances=lambda service: calculate_instances(service, future_load)
+            delta_instances=lambda future_service: calculate_instances(future_service, future_load)
         )
-        predicted_experienced_loads.append(service.experienced_load)
-        predicted_ready_instances.append(service.count(ServiceInstanceState.READY))
-        predicted_instances.append(len(service.instances))
+        predicted_experienced_loads.append(future_service.experienced_load)
+        predicted_ready_instances.append(future_service.count(ServiceInstanceState.READY))
+        predicted_instances.append(len(future_service.instances))
 
         current_time += step
 
@@ -411,7 +409,6 @@ def plot_loads(
         predicted_instances: list[int], 
         predicted_ready_instances: list[int]
 ):
-
 
     fig, axs = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
 
