@@ -3,8 +3,8 @@
 
 ### Target Device
 
-The Target Device sends a get request to the load generator to start a simulated load. Calculates available instances to met the load. Simulates a real device. 
-To be able to run this script make sure ALL THREE flask servers for the other modules are running. Then, initiate a target device for a wanted starting date, end date and request frequency using:
+The Target Device sends a get request to the load generator to start a simulated load. Calculates available instances to met the load. Includes predictions. Simulates a real device. 
+To be able to run this script make sure ALL FOUR flask servers for the other modules are running. Then, initiate a target device for a wanted starting date, end date and request frequency using:
 - By default it uses NASA data. This has to be manually changed in load_generator.
 - It also creates a plot of the simulation.
 
@@ -20,6 +20,15 @@ Start all  modules except for the targetservice at the same time (if you don't w
 ````bash
 python3 start_modules.py
 ````
+
+### Autoscaler service/Predictor (should maybe be renamed)
+The module create and trains predictors on all the historical data of the target service that is stored by the load recorder.
+After training the models the flaskservice is starting and the module waits for the target service to request a prediction for a cetain load. 
+
+````bash
+python3 autoscaler/predictive_scaler.py
+````
+
 
 ### Database service
 Preforms queries/interaction with the MySql database. Listens to GET requests from Load generator and Autoscaler and POST requests from Load recorder. 
