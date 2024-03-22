@@ -2,13 +2,8 @@
 from predictor import Predictor
 from prophet import Prophet
 from sklearn.metrics import mean_absolute_error
-import matplotlib 
 import matplotlib.pyplot as plt
-plt.style.use('ggplot')
-plt.style.use('fivethirtyeight')
 import pandas as pd
-
-
 import warnings
 warnings.filterwarnings("ignore")
 from pandas.api.types import CategoricalDtype
@@ -21,6 +16,9 @@ cat_type = CategoricalDtype(categories=['Monday','Tuesday',
 
 
 class ProphetPredictor(Predictor):
+    """""
+    Prophet Predictor Class. Uses Facebooks prohpet forecasting. 
+    """""
     def __init__(self):
         self.model = None
 
@@ -34,7 +32,7 @@ class ProphetPredictor(Predictor):
         df['dayofweek'] = df['date'].dt.dayofweek
         df['weekday'] = df['date'].dt.day_name()
         df['weekday'] = df['weekday'].astype(cat_type)
-        X = df[['hour','dayofweek','weekday',
+        X = df[['applied_load','hour','dayofweek','weekday',
             ]]
         if label:
             y = df[label]
@@ -59,7 +57,7 @@ class ProphetPredictor(Predictor):
         # Datetime column named: ds
         # target : y
         train_prophet = df.reset_index() \
-        .rename(columns={'index':'ds',
+        .rename(columns={'timestamp':'ds',
                         'applied_load':'y'})
         return train_prophet
     
@@ -68,4 +66,13 @@ class ProphetPredictor(Predictor):
         model.fit(train)
         self.model = model
         return model
+    
+    def make_predictions(self,test):
+        test.index.names = ["timestamp"]
+        targetdevice_test_prophet = test.reset_index() \
+        .rename(columns={'timestamp':'ds',
+                        'applied_load':'y'})
+        targetdevice_test_fcst = self.model.predict(targetdevice_test_prophet)
+        return targetdevice_test_fcst
+
     
