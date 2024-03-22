@@ -6,6 +6,10 @@ from sklearn.metrics import mean_squared_error
 from datetime import timedelta
 
 class Predictor():
+    """""
+    General Predictor class. Upper Class that includes all common function to all inner predictor classes with varying prediction models.
+      
+    """""
     def __init__(self):
         self.model = None
 
