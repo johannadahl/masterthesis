@@ -24,6 +24,7 @@ def predict():
     """""
     df_predictions = generate_predictions_with_xgboost(start_date, end_date)
   # df_predictions = generate_predictions_with_prophet(start_date, end_date)
+    #df_predictions = generate_predictions_with_arima(start_date, end_date)
     payload = df_predictions.reset_index().to_json(orient='records')
     return payload
 
@@ -72,7 +73,7 @@ def generate_predictions_with_prophet(start_date, end_date):
     df_with_predictions.rename(columns={"yhat": "pred","ds":"index" }, inplace=True)
     return df_with_predictions
 
-def create_arima_predictor():
+def create_and_train_arima_predictor():
     df = arima_predictor.import_historical_dataset()
     if df is not None:
         df = arima_predictor.preprocess_data(df)
@@ -80,8 +81,9 @@ def create_arima_predictor():
         model = arima_predictor.fit_autoarima(df)
     return model
 
-def generate_predictions_arima(start_date, end_date):
+def generate_predictions_with_arima(start_date, end_date):
     df = arima_predictor.generate_X_values(start_date, end_date)
+    return df
 
 
 
@@ -94,5 +96,6 @@ if __name__ == "__main__":
     """"" 
     create_and_train_xgboost_predictor()
     create_and_train_prophet_predictor()
+    create_and_train_arima_predictor()
     flask_thread = threading.Thread(target=start_flask) #Flaskservern måste köras på en egen tråd! annars kan man inte köra annan kod samtidigt 
     flask_thread.start()
