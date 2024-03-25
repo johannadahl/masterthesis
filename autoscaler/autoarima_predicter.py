@@ -46,7 +46,7 @@ class ARIMAPredictor(Predictor):
 
         return df_train, df_test
     
-    def differencing(self,train,test,df):
+    def differencing(self,df):
 
         plt.rcParams.update({'figure.figsize':(9,7), 'figure.dpi':120})
         
