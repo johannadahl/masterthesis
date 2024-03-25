@@ -3,12 +3,13 @@ from flask import Flask, request
 import numpy as np
 from XGBoost_predictor import XGBoostPredictor
 from Prophet_predictor import ProphetPredictor
+from autoarima_predicter import ARIMAPredictor
 import threading
 
 app = Flask(__name__)
 xgboost_predictor = XGBoostPredictor()
 prophet_predictor = ProphetPredictor()
-
+arima_predictor = ARIMAPredictor()
 
 @app.route("/predict", methods=["POST"])
 def predict():
@@ -21,8 +22,8 @@ def predict():
     Ändrade det här, så nu är det bara en rad som man måste "ändra" om man vill byta prediktionsmodell (kommentera ut de som inte ska användas)
     Detta kan struktureras upp bättre sen med args men funkar så länge,
     """""
-  #  df_predictions = generate_predictions_with_xgboost(start_date, end_date)
-    df_predictions = generate_predictions_with_prophet(start_date, end_date)
+    df_predictions = generate_predictions_with_xgboost(start_date, end_date)
+  # df_predictions = generate_predictions_with_prophet(start_date, end_date)
     payload = df_predictions.reset_index().to_json(orient='records')
     return payload
 
@@ -71,6 +72,15 @@ def generate_predictions_with_prophet(start_date, end_date):
     df_with_predictions.rename(columns={"yhat": "pred","ds":"index" }, inplace=True)
     return df_with_predictions
 
+def create_arima_predictor():
+    df = prophet_predictor.import_historical_dataset()
+    if df is not None:
+        df = prophet_predictor.preprocess_data(df)
+        df = prophet_predictor.remove_outliers(df)
+        model = arima_predictor.fit_autoarima(df)
+    return model
+
+
 def start_flask():
     app.run(debug=False, port=8010,use_reloader=False, host='0.0.0.0') #Startar flask server för TargetService på en annan tråd! 
 
@@ -78,7 +88,7 @@ if __name__ == "__main__":
     """""
     Här tränas först modellerna innan servern startas! Sen kan severn bara igång om man vill testa lite olika target service värden.
     """"" 
-   # create_and_train_xgboost_predictor()
+    create_and_train_xgboost_predictor()
     create_and_train_prophet_predictor()
     flask_thread = threading.Thread(target=start_flask) #Flaskservern måste köras på en egen tråd! annars kan man inte köra annan kod samtidigt 
     flask_thread.start()
