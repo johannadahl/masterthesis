@@ -40,7 +40,7 @@ class TargetService(Resource):
             scale_down_time: ScalingTimeOptions,
             starting_instances: int = 0,
             ready_instances: int = 0,
-            instance_load: float = 2000,
+            instance_load: float = 1000,
             instance_baseline_load: float = 1,
             starting_load: float = 1000,
             terminating_load: float = 1000,
@@ -294,6 +294,24 @@ def remove_outliers(df):
         df_filtered = df[(df['method_count'] >= lower_bound) & (df['method_count'] <= upper_bound)]
         return df_filtered
 
+def rollingAverage(data: list[float], radius: int) -> list[float]:
+    return [
+        average(data, index, radius)
+        for index in range(len(data))
+    ]
+
+def average(data: list[float], index: int, radius: int):
+    total = 0.0
+    total_count = 0
+
+    start = max(0, index - radius)
+    stop = min(index + radius, len(data) - 1)
+
+    for i in range(start, stop):
+        total += data[i]
+        total_count += 1
+
+    return total / total_count
 
 def simulate_run():
     response = requests.get(
@@ -316,6 +334,7 @@ def simulate_run():
         df_hourly = pd.DataFrame(parsed_data)  # Convert JSON data to DataFrame
       #  df_hourly = remove_outliers(df_hourly)
         df_hourly['time'] = pd.to_datetime(df_hourly['time'], unit='ms')
+        print(df_hourly)
         df_hourly = df_hourly.resample('H', on='time').sum()
         df_hourly = df_hourly.reset_index()
         df_hourly['method_count'] = df_hourly['method_count'].astype(float)
@@ -359,7 +378,7 @@ def simulate_run():
     for load in per_hour_loads:
 
         if (current_time + step) in df_predictions['index'].values:
-            future_load = df_predictions.loc[df_predictions['index'] == (current_time  + step), 'pred'].iloc[0]
+            future_load = df_predictions.loc[df_predictions['index'] == (current_time + step), 'pred'].iloc[0]
         else:
             future_load = None  # No prediction available
         
