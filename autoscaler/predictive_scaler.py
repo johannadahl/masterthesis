@@ -73,12 +73,16 @@ def generate_predictions_with_prophet(start_date, end_date):
     return df_with_predictions
 
 def create_arima_predictor():
-    df = prophet_predictor.import_historical_dataset()
+    df = arima_predictor.import_historical_dataset()
     if df is not None:
-        df = prophet_predictor.preprocess_data(df)
-        df = prophet_predictor.remove_outliers(df)
+        df = arima_predictor.preprocess_data(df)
+        df = arima_predictor.remove_outliers(df)
         model = arima_predictor.fit_autoarima(df)
     return model
+
+def generate_predictions_arima(start_date, end_date):
+    df = arima_predictor.generate_X_values(start_date, end_date)
+
 
 
 def start_flask():
