@@ -45,7 +45,7 @@ class Predictor():
         return df_filtered
 
     def generate_X_values(self, start_date, end_date):
-        future = pd.date_range(start_date, end_date, freq='1h')
+        future = pd.date_range(start_date, end_date, freq='1min')
         future_df = pd.DataFrame(index=future)
         future_df = future_df.iloc[:-1]  # Exclude the last timestamp
         return future_df

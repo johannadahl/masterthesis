@@ -67,12 +67,12 @@ class XGBoostPredictor(Predictor):
             fold += 1
         plt.show()
 
-    def preform_cross_validation(self,df):
-        tss = TimeSeriesSplit(n_splits=10, test_size=24, gap=24)
+    def preform_cross_validation(self, df, splits, test_size, gap):
+        tss = TimeSeriesSplit(n_splits=splits, test_size=test_size, gap=gap)
         fold = 0
         preds = []
         scores = []
-        self.plot_cross_validation_folds(df,10,24,0) #To se the folds
+        self.plot_cross_validation_folds(df,splits,test_size,gap) #To se the folds
         for train_idx, val_idx in tss.split(df):
             train = df.iloc[train_idx]
             test = df.iloc[val_idx]

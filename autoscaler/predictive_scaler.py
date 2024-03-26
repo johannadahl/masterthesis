@@ -22,9 +22,9 @@ def predict():
     Ändrade det här, så nu är det bara en rad som man måste "ändra" om man vill byta prediktionsmodell (kommentera ut de som inte ska användas)
     Detta kan struktureras upp bättre sen med args men funkar så länge,
     """""
-   # df_predictions = generate_predictions_with_xgboost(start_date, end_date)
-  # df_predictions = generate_predictions_with_prophet(start_date, end_date)
-    df_predictions = generate_predictions_with_arima(start_date, end_date)
+  #  df_predictions = generate_predictions_with_arima(start_date, end_date)
+    df_predictions = generate_predictions_with_xgboost(start_date, end_date)
+  #  df_predictions = generate_predictions_with_prophet(start_date, end_date)
     payload = df_predictions.reset_index().to_json(orient='records')
     return payload
 
@@ -36,10 +36,10 @@ def create_and_train_xgboost_predictor():
         df = xgboost_predictor.remove_outliers(df)
         df = xgboost_predictor.create_features(df)
         df = xgboost_predictor.add_lag_filters(df)
-        prediction_model, predictions, scores = xgboost_predictor.preform_cross_validation(df)
+        prediction_model, predictions, scores = xgboost_predictor.preform_cross_validation(df,10,720,24)
         print(f'Score across folds {np.mean(scores):0.4f}')
         print(f'Fold scores:{scores}')
-    #    xgboost_predictor.visualize_CV_predictions(xgboost_predictor.model,df)
+        xgboost_predictor.visualize_CV_predictions(xgboost_predictor.model,df)
     return xgboost_predictor
 
 def generate_predictions_with_xgboost(start_date, end_date):
@@ -61,17 +61,22 @@ def create_and_train_prophet_predictor():
         df = prophet_predictor.add_lags_prophet(df)
         df = prophet_predictor.fix_prophet_format(df)
         model = prophet_predictor.create_model(df)
-    return model
+        return model
+    else:
+        return None
 
 def generate_predictions_with_prophet(start_date, end_date):
     df = prophet_predictor.generate_X_values(start_date, end_date)
     df['applied_load'] = None
-    df = prophet_predictor.create_features(df)
-    df = prophet_predictor.add_lags_prophet(df) 
-    df_with_predictions = prophet_predictor.make_predictions(df)
-    df_with_predictions.drop(columns=df_with_predictions.columns.difference(['ds','yhat']), inplace=True)
-    df_with_predictions.rename(columns={"yhat": "pred","ds":"index" }, inplace=True)
-    return df_with_predictions
+    if prophet_predictor.model is not None:
+        df = prophet_predictor.create_features(df)
+        df = prophet_predictor.add_lags_prophet(df) 
+        df_with_predictions = prophet_predictor.make_predictions(df)
+        df_with_predictions.drop(columns=df_with_predictions.columns.difference(['ds','yhat']), inplace=True)
+        df_with_predictions.rename(columns={"yhat": "pred","ds":"index" }, inplace=True)
+        return df_with_predictions
+    else:
+        return df
 
 def create_and_train_arima_predictor():
     df = arima_predictor.import_historical_dataset()
@@ -97,7 +102,7 @@ if __name__ == "__main__":
     Här tränas först modellerna innan servern startas! Sen kan severn bara igång om man vill testa lite olika target service värden.
     """"" 
     create_and_train_xgboost_predictor()
-    create_and_train_prophet_predictor()
-    create_and_train_arima_predictor()
+   # create_and_train_prophet_predictor()
+   # create_and_train_arima_predictor()
     flask_thread = threading.Thread(target=start_flask) #Flaskservern måste köras på en egen tråd! annars kan man inte köra annan kod samtidigt 
     flask_thread.start()
