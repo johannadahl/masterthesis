@@ -19,6 +19,9 @@ from service_instance_state import ServiceInstanceState
 from target_service_instance import TargetServiceInstance
 import json
 import pandas as pd
+import numpy as np
+from scipy.stats import norm
+
 
 app = Flask(__name__)
 api = Api(app)
@@ -27,8 +30,8 @@ LoadRecBASE = "http://127.0.0.1:8008/"
 PredictorBASE = "http://127.0.0.1:8010/"
 
 SCALING_THRESHOLD = 0.2
-SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=1), std_dev=timedelta(minutes=0.01))
-SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=1), std_dev=timedelta(minutes=0.01))
+SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=30), std_dev=timedelta(minutes=1))
+SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=30), std_dev=timedelta(minutes=1))
 
 class TargetService(Resource):
 
@@ -42,8 +45,8 @@ class TargetService(Resource):
             ready_instances: int = 0,
             instance_load: float = 50,
             instance_baseline_load: float = 0.01,
-            starting_load: float = 50,
-            terminating_load: float = 50,
+            starting_load: float = 5,
+            terminating_load: float = 5,
     ):
         self.current_time: datetime = current_time
         self.applied_load: float = applied_load
@@ -226,10 +229,8 @@ class TargetService(Resource):
         # Remove instances in the OFF state
         self.cleanup()
          
-
 def start_flask():
     app.run(debug=False, port=8003,use_reloader=False, host='0.0.0.0') #Startar flask server för TargetService på en annan tråd! 
-
 
 def calculate_instances(
         service: TargetService, future_load: float
@@ -314,6 +315,19 @@ def average(data: list[float], index: int, radius: int):
 
     return total / total_count
 
+def weighted_average_load(predictions_data: pd.DataFrame, target_time: pd.Timestamp, std_dev_minutes: int):
+    mean_time=timedelta(minutes=30) 
+    start_time = target_time + mean_time - pd.Timedelta(minutes=std_dev_minutes)
+    end_time = target_time + mean_time + pd.Timedelta(minutes=std_dev_minutes)
+
+    window_predictions = predictions_data[(predictions_data['index'] >= start_time) & (predictions_data['index'] <= end_time)]
+
+    weights = norm.pdf((window_predictions['index'] - target_time) / pd.Timedelta(minutes=std_dev_minutes))
+
+    weighted_avg_load = np.average(window_predictions['pred'], weights=weights)
+
+    return weighted_avg_load
+
 def simulate_run_minutes():
     response = requests.get(
     LoadGenBASE + "load_generator",
@@ -338,6 +352,10 @@ def simulate_run_minutes():
         df_parsed['time'] = pd.to_datetime(df_parsed['time'], unit='ms')
         print(df_parsed)
         df_minutes = df_parsed.copy()
+        last_row_timestamp = df_minutes.iloc[-1]['time'].date()
+        end_date_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+        if last_row_timestamp == end_date_date:
+            df_minutes = df_minutes.iloc[:-1]  #Remove the last row
 
         #TO GET THE ROLLING AVARAGE PER MINUTE 
         df_minutes["method_count"] = rolling_average(df_minutes["method_count"].to_list(), 60)
@@ -356,6 +374,7 @@ def simulate_run_minutes():
 
     current_time = df_minutes['time'].iloc[0]
     step = timedelta(minutes=1)
+    future_step = timedelta(minutes=35)
 
     service = TargetService(
         current_time=current_time,
@@ -382,8 +401,8 @@ def simulate_run_minutes():
 
     for load in per_minute_loads:
 
-        if (current_time + step) in df_predictions['index'].values:
-            future_load = df_predictions.loc[df_predictions['index'] == (current_time + step), 'pred'].iloc[0]
+        if (current_time + future_step) in df_predictions['index'].values:
+            future_load = weighted_average_load(df_predictions, current_time, std_dev_minutes=1)
         else:
             future_load = None  # No prediction available
         
@@ -499,7 +518,6 @@ def simulate_run():
         print("Error:", e)
         
     per_hour_loads = df_hourly["method_count"]
-    per_minute_loads = df_minutes["method_count"] 
 
     current_time = df_hourly['time'].iloc[0]
     step = timedelta(hours=1)
