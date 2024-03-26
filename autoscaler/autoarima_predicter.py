@@ -66,30 +66,41 @@ class ARIMAPredictor(Predictor):
         auto_arima
 
 
-    def fit_autoarima(self,df):
+    def train_model(self,df):
 
-        X = df['total_load'].values
+        X = df['applied_load'].values
         size = int(len(X) * 0.66)
         df_train, df_test = X[0:size], X[size:len(X)]
         history = [x for x in df_train]
-        predictions = list()
-        order_clarknet = (3, 1, 2)
-        order_worldcup = (2, 1, 3)
         order_nasa = (3, 0, 0)
 
         for t in range(len(df_test)):
-            model = ARIMA(history, order=order_nasa) #måste bytas manuellt beroende på dataset!!!
-            #fit with same parameters
+            model = ARIMA(history, order=order_nasa)
             model_fit = model.fit()
-            output = model_fit.forecast()
-            yhat = output[0]
-            predictions.append(yhat)
             obs = df_test[t]
             history.append(obs)
+
+        self.model = model_fit
         
-        return model
-        #print('predicted=%f, expected=%f' % (yhat, obs))   #tog för mycket plats
-            
+    
+
+    def generate_predictions(self, df):
+       
+        #df = self.generate_X_values(start_date, end_date)
+        X = df['total_load'].values
+        predictions = []
+        
+        history = [x for x in X]  # ändrade detta för att lättare träna kanske tar mindre tid?
+        
+        for x in X:
+            output = self.model.forecast(steps=1)  
+            yhat = output[0]
+            predictions.append(yhat)
+            # Update
+            history.append(yhat)
+
+        return predictions
+
     def evaluation(self, df_test, predictions):
         rmse = sqrt(mean_squared_error(df_test, predictions))
         print('Test RMSE: %.3f' % rmse)
