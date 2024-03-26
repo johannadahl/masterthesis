@@ -75,9 +75,10 @@ class ARIMAPredictor(Predictor):
         predictions = list()
         order_clarknet = (3, 1, 2)
         order_worldcup = (2, 1, 3)
+        order_nasa = (3, 0, 0)
 
         for t in range(len(df_test)):
-            model = ARIMA(history, order=(3, 1, 2))
+            model = ARIMA(history, order=order_nasa) #måste bytas manuellt beroende på dataset!!!
             #fit with same parameters
             model_fit = model.fit()
             output = model_fit.forecast()
@@ -85,9 +86,11 @@ class ARIMAPredictor(Predictor):
             predictions.append(yhat)
             obs = df_test[t]
             history.append(obs)
+        
+        return model
         #print('predicted=%f, expected=%f' % (yhat, obs))   #tog för mycket plats
             
-    def evaluation(self,df_test, predictions):
+    def evaluation(self, df_test, predictions):
         rmse = sqrt(mean_squared_error(df_test, predictions))
         print('Test RMSE: %.3f' % rmse)
 
