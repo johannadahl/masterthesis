@@ -22,9 +22,9 @@ def predict():
     Ändrade det här, så nu är det bara en rad som man måste "ändra" om man vill byta prediktionsmodell (kommentera ut de som inte ska användas)
     Detta kan struktureras upp bättre sen med args men funkar så länge,
     """""
-    df_predictions = generate_predictions_with_xgboost(start_date, end_date)
+   # df_predictions = generate_predictions_with_xgboost(start_date, end_date)
   # df_predictions = generate_predictions_with_prophet(start_date, end_date)
-    #df_predictions = generate_predictions_with_arima(start_date, end_date)
+    df_predictions = generate_predictions_with_arima(start_date, end_date)
     payload = df_predictions.reset_index().to_json(orient='records')
     return payload
 

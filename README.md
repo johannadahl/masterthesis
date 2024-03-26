@@ -13,7 +13,7 @@ python3 targetservice/target_service.py start_date end_date resample_frequency
 ````
 For example: 
 ````bash
-python3 targetservice/target_service.py 1998-05-02 1998-05-06 60s
+python3 targetservice/targetservice.py 1998-05-02 1998-05-06 60s
 ````
 ### Start All Services
 Start all  modules except for the targetservice at the same time (if you don't want them to start individually):
