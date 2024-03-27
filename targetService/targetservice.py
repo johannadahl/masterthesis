@@ -109,6 +109,8 @@ class TargetService(Resource):
         :param count: The number of instances to return
         :return: A generator yielding the victim instances in the mentioned order.
         """
+
+    
         starting = sorted(
             filter(
                 lambda instance: instance.state == ServiceInstanceState.STARTING,
@@ -116,7 +118,6 @@ class TargetService(Resource):
             ),
             key=lambda instance: instance.started_time
         )
-
         running = sorted(
             filter(
                 lambda instance: instance.state == ServiceInstanceState.READY,
@@ -315,7 +316,7 @@ def average(data: list[float], index: int, radius: int):
 
     return total / total_count
 
-def weighted_average_load(predictions_data: pd.DataFrame, target_time: pd.Timestamp, mean_time: int, std_dev_minutes: int,weight_scale: float = 10000000000.0):
+def weighted_average_load(predictions_data: pd.DataFrame, target_time: pd.Timestamp, mean_time: int, std_dev_minutes: int):
     mean_time = pd.Timedelta(minutes=mean_time)
     start_time = target_time + mean_time - pd.Timedelta(minutes=std_dev_minutes)
     end_time = target_time + mean_time + pd.Timedelta(minutes=std_dev_minutes)
@@ -326,11 +327,25 @@ def weighted_average_load(predictions_data: pd.DataFrame, target_time: pd.Timest
     time_diffs = (window_predictions['index'] - (target_time + mean_time)  ) / pd.Timedelta(minutes=std_dev_minutes)
     
     mean_time_minutes = mean_time.total_seconds() / 60  # Convert to minutes
-    weights = norm.pdf(time_diffs, loc=mean_time_minutes, scale=std_dev_minutes) *weight_scale
+    weights = norm.pdf(time_diffs, loc=mean_time_minutes, scale=std_dev_minutes)
 
     weighted_avg_load = np.average(window_predictions['pred'], weights=weights)
 
     return weighted_avg_load
+
+def get_minut_df(parsed_data):
+    df_parsed = pd.DataFrame(parsed_data) 
+    df_parsed['time'] = pd.to_datetime(df_parsed['time'], unit='ms')
+    print(df_parsed)
+    df_minutes = df_parsed.copy()
+    last_row_timestamp = df_minutes.iloc[-1]['time'].date()
+    end_date_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+    if last_row_timestamp == end_date_date:
+        df_minutes = df_minutes.iloc[:-1]  #Remove the last row. Detta görs för att annars kan de bli oklar bugg :)
+
+    #TO GET THE ROLLING AVARAGE PER MINUTE 
+    df_minutes["method_count"] = rolling_average(df_minutes["method_count"].to_list(), 60)
+    return df_minutes
 
 def simulate_run_minutes():
     response = requests.get(
@@ -350,28 +365,7 @@ def simulate_run_minutes():
     if 'pred' not in df_predictions.columns:
         df_predictions['pred'] = None
 
-    try:
-        df_parsed = pd.DataFrame(parsed_data) 
-        df_parsed['time'] = pd.to_datetime(df_parsed['time'], unit='ms')
-        print(df_parsed)
-        df_minutes = df_parsed.copy()
-        last_row_timestamp = df_minutes.iloc[-1]['time'].date()
-        end_date_date = datetime.strptime(end_date, "%Y-%m-%d").date()
-        if last_row_timestamp == end_date_date:
-            df_minutes = df_minutes.iloc[:-1]  #Remove the last row. Detta görs för att annars kan de bli oklar bugg :)
-
-        #TO GET THE ROLLING AVARAGE PER MINUTE 
-        df_minutes["method_count"] = rolling_average(df_minutes["method_count"].to_list(), 60)
-        plt.figure(figsize=(12, 6))
-        plt.plot(df_minutes['time'], df_minutes['method_count'], color='blue', label='Method Count')
-        plt.xlabel('Time')
-        plt.ylabel('Workload')
-        plt.title('Minute-wise avarage load')
-        plt.legend()
-        plt.grid(True)
-        plt.show()
-    except ValueError as e:
-        print("Error:", e)
+    df_minutes =  get_minut_df(parsed_data)
         
     per_minute_loads = df_minutes["method_count"] 
 
