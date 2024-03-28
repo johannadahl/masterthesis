@@ -30,8 +30,8 @@ LoadRecBASE = "http://127.0.0.1:8008/"
 PredictorBASE = "http://127.0.0.1:8010/"
 
 SCALING_THRESHOLD = 0.2
-SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=1), std_dev=timedelta(minutes=0.01))
-SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=1), std_dev=timedelta(minutes=0.01))
+SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=10), std_dev=timedelta(minutes=0.01))
+SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=10), std_dev=timedelta(minutes=0.01))
 
 class TargetService(Resource):
 
@@ -244,7 +244,7 @@ def calculate_instances(
 
     desired_mean_load = 0.5
     upper_threshold = desired_mean_load + SCALING_THRESHOLD
-    lower_threshold = desired_mean_load - SCALING_THRESHOLD
+    lower_threshold = desired_mean_load - 0.09
 
     scaling_factor_future = None
     if future_load is not None:
@@ -265,6 +265,7 @@ def calculate_instances(
         if scaling_factor_future > 1 or scaling_factor > 1:
             scaling_factor = max(scaling_factor, scaling_factor_future)
         else:
+            #Sätt min om man vill va agressiv och max om man vill vara säker
             scaling_factor = min(scaling_factor, scaling_factor_future)
 
     current_instances = service.count(ServiceInstanceState.READY)
@@ -272,7 +273,7 @@ def calculate_instances(
     terminating_instances = service.count(ServiceInstanceState.TERMINATING)
 
     down_instances = math.ceil(
-        (current_instances - terminating_instances) * scaling_factor
+        (current_instances - terminating_instances) * (1 - scaling_factor)
     )
 
     up_instances = math.ceil(
