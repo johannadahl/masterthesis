@@ -21,6 +21,7 @@ import json
 import pandas as pd
 import numpy as np
 from scipy.stats import norm
+import statistics
 
 
 app = Flask(__name__)
@@ -30,8 +31,8 @@ LoadRecBASE = "http://127.0.0.1:8008/"
 PredictorBASE = "http://127.0.0.1:8010/"
 
 SCALING_THRESHOLD = 0.2
-SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=30), std_dev=timedelta(minutes=0.01))
-SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=30), std_dev=timedelta(minutes=0.01))
+SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=10), std_dev=timedelta(minutes=0.01))
+SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=10), std_dev=timedelta(minutes=0.01))
 
 class TargetService(Resource):
 
@@ -45,8 +46,8 @@ class TargetService(Resource):
             ready_instances: int = 0,
             instance_load: float = 1,
             instance_baseline_load: float = 0.01,
-            starting_load: float = 0.2,
-            terminating_load: float = 0.2,
+            starting_load: float = 0.1,
+            terminating_load: float = 0.1,
     ):
         self.current_time: datetime = current_time
         self.applied_load: float = applied_load
@@ -383,6 +384,7 @@ def simulate_run_minutes():
         scale_down_time=SCALE_DOWN_TIME,
         ready_instances=40
     )
+    service_accuracy_differences = []
     future_service = TargetService(
         current_time=current_time,
         applied_load=per_minute_loads[0],
@@ -390,6 +392,7 @@ def simulate_run_minutes():
         scale_down_time=SCALE_DOWN_TIME,
         ready_instances=40
     )
+    future_service_accuracy_differences = []
 
     experienced_loads = []
     ready_instances = []
@@ -416,6 +419,7 @@ def simulate_run_minutes():
         experienced_loads.append(service.experienced_load)
         ready_instances.append(service.count(ServiceInstanceState.READY))
         instances.append(len(service.instances))
+        service_accuracy_differences.append(calculate_differences(service))
 
         #DET HÄR ÄR UTKOMMENTERAT PGA TAR FÖR LÅNG TID
         #Detta är delen som recordar allt som servicen gör till databasen, alltså lagrar historisk data
@@ -433,6 +437,7 @@ def simulate_run_minutes():
         predicted_experienced_loads.append(future_service.experienced_load)
         predicted_ready_instances.append(future_service.count(ServiceInstanceState.READY))
         predicted_instances.append(len(future_service.instances))
+        future_service_accuracy_differences.append(calculate_differences(future_service))
 
         
 
@@ -442,6 +447,11 @@ def simulate_run_minutes():
     ]
     predicted_load_list = df_predictions['pred'].tolist()
     print(df_predictions)
+
+    service_accuracy = calculate_scaling_accuracy(service_accuracy_differences)
+    future_service_accuracy = calculate_scaling_accuracy(future_service_accuracy_differences)
+    print("Scaling Accuracy without prediction:", service_accuracy)
+    print("Scaling Accuracy with prediction:", future_service_accuracy)
     return minutes, per_minute_loads, experienced_loads, instances, ready_instances, predicted_load_list, predicted_experienced_loads, predicted_instances, predicted_ready_instances
 
 def plot_loads_minutes(
@@ -477,6 +487,26 @@ def plot_loads_minutes(
 
     plt.tight_layout()
     plt.show()
+
+
+def calculate_scaling_accuracy(differences: list[float]) -> float:
+    """
+    Scaling accuracy - The average difference.
+    """
+    mean_difference = statistics.mean(differences)
+    return mean_difference
+
+
+def calculate_differences(service: TargetService) -> float:
+    """
+    Difference between the number of instances and the number of instances required.
+    """
+    current_instances = service.count(ServiceInstanceState.READY)
+    processed_load = service.processed_load
+    total_load = service.experienced_load
+    instances_needed = total_load/processed_load
+    difference = abs(instances_needed-current_instances)
+    return difference
 
 #OLD
 def simulate_run():
