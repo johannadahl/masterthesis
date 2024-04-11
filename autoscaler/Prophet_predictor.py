@@ -4,6 +4,7 @@ from prophet import Prophet
 from sklearn.metrics import mean_absolute_error
 import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn as sns
 import warnings
 warnings.filterwarnings("ignore")
 from pandas.api.types import CategoricalDtype
@@ -41,9 +42,9 @@ class ProphetPredictor(Predictor):
     
     def add_lags_prophet(self,df):
         target_map = df['applied_load'].to_dict()
-        df['lag1'] = (df.index - pd.Timedelta('7 days')).map(target_map)
-        df['lag2'] = (df.index - pd.Timedelta('14 days')).map(target_map)
-        df['lag3'] = (df.index - pd.Timedelta('21 days')).map(target_map)
+        df['lag1'] = (df.index - pd.Timedelta('1 days')).map(target_map)
+        df['lag2'] = (df.index - pd.Timedelta('7 days')).map(target_map)
+        df['lag3'] = (df.index - pd.Timedelta('14 days')).map(target_map)
         return df
     
     def split_train_test(self, df, split_date):
@@ -75,4 +76,22 @@ class ProphetPredictor(Predictor):
         targetdevice_test_fcst = self.model.predict(targetdevice_test_prophet)
         return targetdevice_test_fcst
 
+    def plot_weekday_load(self,features_and_target ):
+        fig, ax = plt.subplots(figsize=(10, 5))
+        sns.boxplot(data=features_and_target.dropna(),
+                    x='hour',
+                    y='applied_load',
+                    hue='weekday',
+                    ax=ax,
+                    linewidth=1)
+        ax.set_title('Load on the ClarkNet server per hour per day.')
+        ax.set_xlabel('Hour per day')
+        ax.set_ylabel('Workload')
+        ax.legend(bbox_to_anchor=(1, 1))
+        plt.show()
     
+    def plot_trends(self,forecast):
+        fig = self.model.plot_components(forecast)
+        plt.show()
+
+

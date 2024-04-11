@@ -73,7 +73,7 @@ def add_target_service_load(applied_load, experienced_load, current_time, instan
                                             )
 
         cursor = connection.cursor()
-        cursor.execute("INSERT INTO target_service_clarknet (TIMESTAMP, appliedLoad, experiencedLoad, instances) Values (%s,%s,%s,%s);",
+        cursor.execute("INSERT INTO target_service_nasa (TIMESTAMP, appliedLoad, experiencedLoad, instances) Values (%s,%s,%s,%s);",
                        (current_time, applied_load, experienced_load, instances))
         connection.commit()
         cursor.close()
@@ -157,7 +157,7 @@ def return_target_service_data():
         connection = mysql.connector.connect(**db_config)
         cursor = connection.cursor()
         #Query som hämtar all taget servic data
-        cursor.execute("SELECT * FROM target_service_clarknet")
+        cursor.execute("SELECT * FROM target_service_nasa")
                        
         result = cursor.fetchall()
         return result

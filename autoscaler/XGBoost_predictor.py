@@ -52,7 +52,7 @@ class XGBoostPredictor(Predictor):
         fold = 0
         preds = []
         scores = []
-        fig, axs = plt.subplots(10, 1, figsize=(15, 15), sharex=True)
+        fig, axs = plt.subplots(splits, 1, figsize=(15, 15), sharex=True)
 
         fold = 0
         for train_idx, val_idx in tss.split(df):
@@ -111,16 +111,22 @@ class XGBoostPredictor(Predictor):
         target_map = df['applied_load'].to_dict()
         ##Här får vi antingen lägga till en if sats eller anta att vi alltid har tillgång till tre veckors data 
         ## De kommer dokc inte funka på clarknet och NASA
-        df['lag1'] = (df.index - pd.Timedelta('7 days')).map(target_map)
-        df['lag2'] = (df.index - pd.Timedelta('14 days')).map(target_map)
-        df['lag3'] = (df.index - pd.Timedelta('21 days')).map(target_map)
+        df['lag1'] = (df.index - pd.Timedelta('1 days')).map(target_map)
+        df['lag2'] = (df.index - pd.Timedelta('7 days')).map(target_map)
+        df['lag3'] = (df.index - pd.Timedelta('14 days')).map(target_map) 
         return df
     
-    def show_feature_importance(self,reg):
+    def show_feature_importance(self,reg,df):
         fi = pd.DataFrame(data=reg.feature_importances_,
              index=reg.feature_names_in_,
              columns=['importance'])
         fi.sort_values('importance').plot(kind='barh', title='Feature Importance')
+        plt.show()
+        # Visualize
+
+        fig, ax = plt.subplots(figsize=(7, 8))
+        sns.boxplot(data=df, x='hour', y='applied_load')
+        ax.set_title('Requests to Worldcup server per Hour')
         plt.show()
             
     def visualize_predictions(self,reg,test,X_test,df):
@@ -130,20 +136,19 @@ class XGBoostPredictor(Predictor):
         df['prediction'].plot(ax=ax, style='.')
         plt.legend(['Truth Data', 'Predictions'])
         ax.set_title('Raw Dat and Prediction')
-        print(df)
         plt.show()
     
-    def visualize_CV_predictions(self,reg,df):
+    def visualize_CV_predictions(self,reg,df,splits):
         FEATURES = ['hour', 'dayofweek',
                 'lag1','lag2','lag3']
         
         df['pred'] = reg.predict(df[FEATURES])
 
-        df['applied_load'].plot(figsize=(10, 5),
+        df['applied_load'].plot(figsize=(splits, 5),
                                     color=color_pal[2],
                                     ms=2,
                                     lw=2,)
-        df['pred'].plot(figsize=(10, 5),
+        df['pred'].plot(figsize=(splits, 5),
                                     color=color_pal[3],
                                     ms=1,
                                     lw=1,

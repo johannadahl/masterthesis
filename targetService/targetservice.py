@@ -30,8 +30,8 @@ LoadRecBASE = "http://127.0.0.1:8008/"
 PredictorBASE = "http://127.0.0.1:8010/"
 
 SCALING_THRESHOLD = 0.2
-SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=10), std_dev=timedelta(minutes=0.01))
-SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=10), std_dev=timedelta(minutes=0.01))
+SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=30), std_dev=timedelta(minutes=0.01))
+SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=30), std_dev=timedelta(minutes=0.01))
 
 class TargetService(Resource):
 
@@ -43,10 +43,10 @@ class TargetService(Resource):
             scale_down_time: ScalingTimeOptions,
             starting_instances: int = 0,
             ready_instances: int = 0,
-            instance_load: float = 10,
+            instance_load: float = 1,
             instance_baseline_load: float = 0.01,
-            starting_load: float = 10,
-            terminating_load: float = 10,
+            starting_load: float = 0.2,
+            terminating_load: float = 0.2,
     ):
         self.current_time: datetime = current_time
         self.applied_load: float = applied_load
@@ -337,7 +337,7 @@ def weighted_average_load(predictions_data: pd.DataFrame, target_time: pd.Timest
 def get_minut_df(parsed_data):
     df_parsed = pd.DataFrame(parsed_data) 
     df_parsed['time'] = pd.to_datetime(df_parsed['time'], unit='ms')
-    print(df_parsed)
+    
     df_minutes = df_parsed.copy()
     last_row_timestamp = df_minutes.iloc[-1]['time'].date()
     end_date_date = datetime.strptime(end_date, "%Y-%m-%d").date()
@@ -346,6 +346,7 @@ def get_minut_df(parsed_data):
 
     #TO GET THE ROLLING AVARAGE PER MINUTE 
     df_minutes["method_count"] = rolling_average(df_minutes["method_count"].to_list(), 60)
+    print("Df parsed,",df_minutes)
     return df_minutes
 
 def simulate_run_minutes():
@@ -356,6 +357,7 @@ def simulate_run_minutes():
     response_data = response.json()
     parsed_data = json.loads(response_data)
     
+
     predictions = requests.post(PredictorBASE + "predict", 
                       json={"start_date": start_date,
                             "end_date": end_date}
@@ -379,14 +381,14 @@ def simulate_run_minutes():
         applied_load=per_minute_loads[0],
         scale_up_time=SCALE_UP_TIME,
         scale_down_time=SCALE_DOWN_TIME,
-        ready_instances=20
+        ready_instances=40
     )
     future_service = TargetService(
         current_time=current_time,
         applied_load=per_minute_loads[0],
         scale_up_time=SCALE_UP_TIME,
         scale_down_time=SCALE_DOWN_TIME,
-        ready_instances=20
+        ready_instances=40
     )
 
     experienced_loads = []
@@ -400,7 +402,7 @@ def simulate_run_minutes():
     for load in per_minute_loads:
         current_time += step
 
-        if (current_time + future_step) in df_predictions['index'].values:
+        if (current_time + future_step) in df_predictions['index'].values and not df_predictions['pred'].isnull().all():
             future_load = weighted_average_load(df_predictions, current_time, 60, 10)
         else:
             future_load = None  # No prediction available
@@ -416,11 +418,12 @@ def simulate_run_minutes():
         instances.append(len(service.instances))
 
         #DET HÄR ÄR UTKOMMENTERAT PGA TAR FÖR LÅNG TID
-        #requests.post(LoadRecBASE + "loadrecorder",
-        #              json={"applied_load": service.applied_load, 
-        #                    "experienced_load": service.experienced_load,
-        #                    "current_time": str(service.current_time),
-        #                    "instances": len(service.instances)})
+        #Detta är delen som recordar allt som servicen gör till databasen, alltså lagrar historisk data
+      #  requests.post(LoadRecBASE + "loadrecorder",
+      #                json={"applied_load": service.applied_load, 
+      #                      "experienced_load": service.experienced_load,
+      #                      "current_time": str(service.current_time),
+      #                      "instances": len(service.instances)})
         #Simulate service update with prediction values aswell
         future_service.update(
             current_time=current_time,
@@ -475,6 +478,7 @@ def plot_loads_minutes(
     plt.tight_layout()
     plt.show()
 
+#OLD
 def simulate_run():
     response = requests.get(
     LoadGenBASE + "load_generator",
@@ -496,7 +500,7 @@ def simulate_run():
 
     try:
         df_parsed = pd.DataFrame(parsed_data)  # Convert JSON data to DataFrame
-      # df_hourly = remove_outliers(df_hourly)
+        df_parsed = remove_outliers(df_parsed)
         df_parsed['time'] = pd.to_datetime(df_parsed['time'], unit='ms')
         print(df_parsed)
         df_minutes = df_parsed.copy()
@@ -561,11 +565,11 @@ def simulate_run():
         ready_instances.append(service.count(ServiceInstanceState.READY))
         instances.append(len(service.instances))
 
-        requests.post(LoadRecBASE + "loadrecorder",
-                      json={"applied_load": service.applied_load, 
-                            "experienced_load": service.experienced_load,
-                            "current_time": str(service.current_time),
-                            "instances": len(service.instances)})
+     #   requests.post(LoadRecBASE + "loadrecorder",
+     #                 json={"applied_load": service.applied_load, 
+     #                       "experienced_load": service.experienced_load,
+     #                       "current_time": str(service.current_time),
+     #                       "instances": len(service.instances)})
         #Simulate service update with prediction values aswell
         future_service.update(
             current_time=current_time,
@@ -585,6 +589,7 @@ def simulate_run():
     predicted_load_list = df_predictions['pred'].tolist()
     return hours, per_hour_loads, experienced_loads, instances, ready_instances, predicted_load_list, predicted_experienced_loads, predicted_instances, predicted_ready_instances
 
+#OLD
 def plot_loads(
         hours: list[int],
         applied_loads: list[float],
