@@ -115,6 +115,7 @@ def fetch_and_return_data(databasename,start_date,end_date):
         if connection.is_connected():
             connection.close()
 
+#Används ej
 def return_target_device_data(start_date):
     db_config = {
         "host": "127.0.0.1",

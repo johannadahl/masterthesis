@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import requests
 import xgboost as xgb
+import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
 from datetime import timedelta
 
@@ -45,16 +46,23 @@ class Predictor():
         return df_filtered
 
     def generate_X_values(self, start_date, end_date):
-        future = pd.date_range(start_date, end_date, freq='1h')
+        future = pd.date_range(start_date, end_date, freq='1min')
         future_df = pd.DataFrame(index=future)
         future_df = future_df.iloc[:-1]  # Exclude the last timestamp
-        return future_df
+        historical_data = self.import_historical_dataset()
+        historical_data = self.preprocess_data(historical_data)
+        historical_data = self.remove_outliers(historical_data)
+        df = pd.concat([historical_data, future_df])
+        print("Generate_x",df)
+        return df
     
     def predict_load(self, reg, df):
         FEATURES = ['hour', 'dayofweek',
                 'lag1','lag2','lag3']
-        
-        df['pred'] = reg.predict(df[FEATURES])
+        if reg is not None:
+            df['pred'] = reg.predict(df[FEATURES])
+        else:
+            df['pred'] = None
         return df
     
     ## MAPE - gives the avarage percent off what our prediction is from the ground truth.

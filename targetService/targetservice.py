@@ -19,6 +19,10 @@ from service_instance_state import ServiceInstanceState
 from target_service_instance import TargetServiceInstance
 import json
 import pandas as pd
+import numpy as np
+from scipy.stats import norm
+import statistics
+
 
 app = Flask(__name__)
 api = Api(app)
@@ -27,8 +31,8 @@ LoadRecBASE = "http://127.0.0.1:8008/"
 PredictorBASE = "http://127.0.0.1:8010/"
 
 SCALING_THRESHOLD = 0.2
-SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(hours=1), std_dev=timedelta(hours=0.01))
-SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(hours=1), std_dev=timedelta(hours=0.01))
+SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=10), std_dev=timedelta(minutes=0.01))
+SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=10), std_dev=timedelta(minutes=0.01))
 
 class TargetService(Resource):
 
@@ -40,10 +44,10 @@ class TargetService(Resource):
             scale_down_time: ScalingTimeOptions,
             starting_instances: int = 0,
             ready_instances: int = 0,
-            instance_load: float = 1000,
-            instance_baseline_load: float = 1,
-            starting_load: float = 1000,
-            terminating_load: float = 1000,
+            instance_load: float = 1,
+            instance_baseline_load: float = 0.01,
+            starting_load: float = 0.1,
+            terminating_load: float = 0.1,
     ):
         self.current_time: datetime = current_time
         self.applied_load: float = applied_load
@@ -106,6 +110,8 @@ class TargetService(Resource):
         :param count: The number of instances to return
         :return: A generator yielding the victim instances in the mentioned order.
         """
+
+    
         starting = sorted(
             filter(
                 lambda instance: instance.state == ServiceInstanceState.STARTING,
@@ -113,7 +119,6 @@ class TargetService(Resource):
             ),
             key=lambda instance: instance.started_time
         )
-
         running = sorted(
             filter(
                 lambda instance: instance.state == ServiceInstanceState.READY,
@@ -226,10 +231,8 @@ class TargetService(Resource):
         # Remove instances in the OFF state
         self.cleanup()
          
-
 def start_flask():
     app.run(debug=False, port=8003,use_reloader=False, host='0.0.0.0') #Startar flask server för TargetService på en annan tråd! 
-
 
 def calculate_instances(
         service: TargetService, future_load: float
@@ -242,7 +245,7 @@ def calculate_instances(
 
     desired_mean_load = 0.5
     upper_threshold = desired_mean_load + SCALING_THRESHOLD
-    lower_threshold = desired_mean_load - SCALING_THRESHOLD
+    lower_threshold = desired_mean_load - 0.09
 
     scaling_factor_future = None
     if future_load is not None:
@@ -263,6 +266,7 @@ def calculate_instances(
         if scaling_factor_future > 1 or scaling_factor > 1:
             scaling_factor = max(scaling_factor, scaling_factor_future)
         else:
+            #Sätt min om man vill va agressiv och max om man vill vara säker
             scaling_factor = min(scaling_factor, scaling_factor_future)
 
     current_instances = service.count(ServiceInstanceState.READY)
@@ -270,7 +274,7 @@ def calculate_instances(
     terminating_instances = service.count(ServiceInstanceState.TERMINATING)
 
     down_instances = math.ceil(
-        (current_instances - terminating_instances) * scaling_factor
+        (current_instances - terminating_instances) * (1 - scaling_factor)
     )
 
     up_instances = math.ceil(
@@ -294,7 +298,7 @@ def remove_outliers(df):
         df_filtered = df[(df['method_count'] >= lower_bound) & (df['method_count'] <= upper_bound)]
         return df_filtered
 
-def rollingAverage(data: list[float], radius: int) -> list[float]:
+def rolling_average(data: list[float], radius: int) -> list[float]:
     return [
         average(data, index, radius)
         for index in range(len(data))
@@ -308,11 +312,203 @@ def average(data: list[float], index: int, radius: int):
     stop = min(index + radius, len(data) - 1)
 
     for i in range(start, stop):
-        total += data[i]
-        total_count += 1
+        weight = radius - abs(index - i)
+        total += data[i] * weight
+        total_count += weight
 
     return total / total_count
 
+def weighted_average_load(predictions_data: pd.DataFrame, target_time: pd.Timestamp, mean_time: int, std_dev_minutes: int):
+    mean_time = pd.Timedelta(minutes=mean_time)
+    start_time = target_time + mean_time - pd.Timedelta(minutes=std_dev_minutes)
+    end_time = target_time + mean_time + pd.Timedelta(minutes=std_dev_minutes)
+
+    window_predictions = predictions_data[(predictions_data['index'] >= start_time) & (predictions_data['index'] <= end_time)]
+
+    #weights = norm.pdf((window_predictions['index'] - target_time + mean_time) / pd.Timedelta(minutes=std_dev_minutes))*weight_scale
+    time_diffs = (window_predictions['index'] - (target_time + mean_time)  ) / pd.Timedelta(minutes=std_dev_minutes)
+    
+    mean_time_minutes = mean_time.total_seconds() / 60  # Convert to minutes
+    weights = norm.pdf(time_diffs, loc=mean_time_minutes, scale=std_dev_minutes)
+
+    weighted_avg_load = np.average(window_predictions['pred'], weights=weights)
+
+    return weighted_avg_load
+
+def get_minut_df(parsed_data):
+    df_parsed = pd.DataFrame(parsed_data) 
+    df_parsed['time'] = pd.to_datetime(df_parsed['time'], unit='ms')
+    
+    df_minutes = df_parsed.copy()
+    last_row_timestamp = df_minutes.iloc[-1]['time'].date()
+    end_date_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+    if last_row_timestamp == end_date_date:
+        df_minutes = df_minutes.iloc[:-1]  #Remove the last row. Detta görs för att annars kan de bli oklar bugg :)
+
+    #TO GET THE ROLLING AVARAGE PER MINUTE 
+    df_minutes["method_count"] = rolling_average(df_minutes["method_count"].to_list(), 60)
+    print("Df parsed,",df_minutes)
+    return df_minutes
+
+def simulate_run_minutes():
+    response = requests.get(
+    LoadGenBASE + "load_generator",
+    params={"start_date": start_date,"end_date":end_date, "resample_frequency": resample_frequency}
+)
+    response_data = response.json()
+    parsed_data = json.loads(response_data)
+    
+
+    predictions = requests.post(PredictorBASE + "predict", 
+                      json={"start_date": start_date,
+                            "end_date": end_date}
+                            )
+    predictions_data = predictions.json()
+    df_predictions = pd.DataFrame(predictions_data)
+    df_predictions['index'] = pd.to_datetime(df_predictions['index'], unit='ms')
+    if 'pred' not in df_predictions.columns:
+        df_predictions['pred'] = None
+
+    df_minutes =  get_minut_df(parsed_data)
+        
+    per_minute_loads = df_minutes["method_count"] 
+
+    current_time = df_minutes['time'].iloc[0]
+    step = timedelta(minutes=1)
+    future_step = timedelta(minutes=70)
+
+    service = TargetService(
+        current_time=current_time,
+        applied_load=per_minute_loads[0],
+        scale_up_time=SCALE_UP_TIME,
+        scale_down_time=SCALE_DOWN_TIME,
+        ready_instances=40
+    )
+    service_accuracy_differences = []
+    future_service = TargetService(
+        current_time=current_time,
+        applied_load=per_minute_loads[0],
+        scale_up_time=SCALE_UP_TIME,
+        scale_down_time=SCALE_DOWN_TIME,
+        ready_instances=40
+    )
+    future_service_accuracy_differences = []
+
+    experienced_loads = []
+    ready_instances = []
+    instances = []
+
+    predicted_experienced_loads = []
+    predicted_ready_instances = []
+    predicted_instances = []
+
+    for load in per_minute_loads:
+        current_time += step
+
+        if (current_time + future_step) in df_predictions['index'].values and not df_predictions['pred'].isnull().all():
+            future_load = weighted_average_load(df_predictions, current_time, 60, 10)
+        else:
+            future_load = None  # No prediction available
+        
+        service.update(
+            current_time=current_time,
+            applied_load=load,
+            delta_instances=lambda service: calculate_instances(service, None)
+        )
+
+        experienced_loads.append(service.experienced_load)
+        ready_instances.append(service.count(ServiceInstanceState.READY))
+        instances.append(len(service.instances))
+        service_accuracy_differences.append(calculate_differences(service))
+
+        #DET HÄR ÄR UTKOMMENTERAT PGA TAR FÖR LÅNG TID
+        #Detta är delen som recordar allt som servicen gör till databasen, alltså lagrar historisk data
+      #  requests.post(LoadRecBASE + "loadrecorder",
+      #                json={"applied_load": service.applied_load, 
+      #                      "experienced_load": service.experienced_load,
+      #                      "current_time": str(service.current_time),
+      #                      "instances": len(service.instances)})
+        #Simulate service update with prediction values aswell
+        future_service.update(
+            current_time=current_time,
+            applied_load=load,
+            delta_instances=lambda future_service: calculate_instances(future_service, future_load)
+        )
+        predicted_experienced_loads.append(future_service.experienced_load)
+        predicted_ready_instances.append(future_service.count(ServiceInstanceState.READY))
+        predicted_instances.append(len(future_service.instances))
+        future_service_accuracy_differences.append(calculate_differences(future_service))
+
+        
+
+    minutes = [
+        i
+        for i in range(len(df_minutes))
+    ]
+    predicted_load_list = df_predictions['pred'].tolist()
+    print(df_predictions)
+
+    service_accuracy = calculate_scaling_accuracy(service_accuracy_differences)
+    future_service_accuracy = calculate_scaling_accuracy(future_service_accuracy_differences)
+    print("Scaling Accuracy without prediction:", service_accuracy)
+    print("Scaling Accuracy with prediction:", future_service_accuracy)
+    return minutes, per_minute_loads, experienced_loads, instances, ready_instances, predicted_load_list, predicted_experienced_loads, predicted_instances, predicted_ready_instances
+
+def plot_loads_minutes(
+        minutes: list[int],
+        applied_loads: list[float],
+        experienced_loads: list[float],
+        total_instances: list[int],
+        ready_instances: list[int],
+        predicted_load_list: list[float], 
+        predicted_experienced_loads: list[float], 
+        predicted_instances: list[int], 
+        predicted_ready_instances: list[int]
+):
+
+    fig, axs = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+
+    axs[0].plot(minutes, experienced_loads, '-r', label='Experienced load (Without Prediction)')
+    axs[0].plot(minutes, predicted_experienced_loads, '-g', label='Experienced load (With Prediction)')
+    axs[0].plot(minutes, predicted_load_list, color='orange',  label='Predicted applied Load')
+    axs[0].plot(minutes, applied_loads, '-b', label='Applied load')
+    axs[0].set_ylabel('Load')
+    axs[0].grid()
+    axs[0].legend()
+
+   # axs[1].plot(hours, total_instances, '-r', label='Total instances (Without Prediction)')
+   # axs[1].plot(hours, predicted_instances, '-g', label='Total instances (With Prediction)')
+    axs[1].plot(minutes, ready_instances, '-b', label='Ready instances (Without Prediction)')
+    axs[1].plot(minutes, predicted_ready_instances, color='orange', label='Ready instances (With Prediction)')
+    axs[1].set_xlabel('Time (minutes)')
+    axs[1].set_ylabel('Instances')
+    axs[1].grid()
+    axs[1].legend()
+
+    plt.tight_layout()
+    plt.show()
+
+
+def calculate_scaling_accuracy(differences: list[float]) -> float:
+    """
+    Scaling accuracy - The average difference.
+    """
+    mean_difference = statistics.mean(differences)
+    return mean_difference
+
+
+def calculate_differences(service: TargetService) -> float:
+    """
+    Difference between the number of instances and the number of instances required.
+    """
+    current_instances = service.count(ServiceInstanceState.READY)
+    processed_load = service.processed_load
+    total_load = service.experienced_load
+    instances_needed = total_load/processed_load
+    difference = abs(instances_needed-current_instances)
+    return difference
+
+#OLD
 def simulate_run():
     response = requests.get(
     LoadGenBASE + "load_generator",
@@ -328,20 +524,27 @@ def simulate_run():
     predictions_data = predictions.json()
     df_predictions = pd.DataFrame(predictions_data)
     df_predictions['index'] = pd.to_datetime(df_predictions['index'], unit='ms')
-    print(df_predictions)
+    if 'pred' not in df_predictions.columns:
+        # If not, create the "pred" column and fill it with None
+        df_predictions['pred'] = None
 
     try:
-        df_hourly = pd.DataFrame(parsed_data)  # Convert JSON data to DataFrame
-      #  df_hourly = remove_outliers(df_hourly)
-        df_hourly['time'] = pd.to_datetime(df_hourly['time'], unit='ms')
-        print(df_hourly)
-        df_hourly = df_hourly.resample('H', on='time').sum()
+        df_parsed = pd.DataFrame(parsed_data)  # Convert JSON data to DataFrame
+        df_parsed = remove_outliers(df_parsed)
+        df_parsed['time'] = pd.to_datetime(df_parsed['time'], unit='ms')
+        print(df_parsed)
+        df_minutes = df_parsed.copy()
+
+        #TO GET THE ROLLING AVARAGE PER MINUTE 
+        df_minutes["method_count"] = rolling_average(df_minutes["method_count"].to_list(), 60)
+
+        df_hourly = df_parsed.resample('H', on='time').sum()
         df_hourly = df_hourly.reset_index()
         df_hourly['method_count'] = df_hourly['method_count'].astype(float)
         last_row_timestamp = df_hourly.iloc[-1]['time'].date()
         end_date_date = datetime.strptime(end_date, "%Y-%m-%d").date()
         if last_row_timestamp == end_date_date:
-            df_hourly = df_hourly.iloc[:-1]  # Remove the last row
+            df_hourly = df_hourly.iloc[:-1]  #Remove the last row
         print("Received DataFrame:")
         print(df_hourly)
     except ValueError as e:
@@ -392,11 +595,11 @@ def simulate_run():
         ready_instances.append(service.count(ServiceInstanceState.READY))
         instances.append(len(service.instances))
 
-        requests.post(LoadRecBASE + "loadrecorder",
-                      json={"applied_load": service.applied_load, 
-                            "experienced_load": service.experienced_load,
-                            "current_time": str(service.current_time),
-                            "instances": len(service.instances)})
+     #   requests.post(LoadRecBASE + "loadrecorder",
+     #                 json={"applied_load": service.applied_load, 
+     #                       "experienced_load": service.experienced_load,
+     #                       "current_time": str(service.current_time),
+     #                       "instances": len(service.instances)})
         #Simulate service update with prediction values aswell
         future_service.update(
             current_time=current_time,
@@ -416,6 +619,7 @@ def simulate_run():
     predicted_load_list = df_predictions['pred'].tolist()
     return hours, per_hour_loads, experienced_loads, instances, ready_instances, predicted_load_list, predicted_experienced_loads, predicted_instances, predicted_ready_instances
 
+#OLD
 def plot_loads(
         hours: list[int],
         applied_loads: list[float],
@@ -451,8 +655,8 @@ def plot_loads(
     plt.show()
 
 def main():
-    args = simulate_run()
-    plot_loads(*args)
+    args = simulate_run_minutes()
+    plot_loads_minutes(*args)
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
