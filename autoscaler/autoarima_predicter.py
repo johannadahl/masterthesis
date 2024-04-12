@@ -66,28 +66,45 @@ class ARIMAPredictor(Predictor):
         auto_arima
 
 
-    def train_model(self,df):
-
+    def train_model(self, df):
         X = df['applied_load'].values
         size = int(len(X) * 0.66)
-        df_train, df_test = X[0:size], X[size:len(X)]
+        df_train, df_test = X[0:size], X[size:]
+
+
         history = [x for x in df_train]
-        order_nasa = (3, 0, 0)
+        order_nasa = (2, 1, 3)
+    
+        
+        model = ARIMA(history, order=order_nasa)
+        self.model = model.fit()
 
-        for t in range(len(df_test)):
-            model = ARIMA(history, order=order_nasa)
-            model_fit = model.fit()
-            obs = df_test[t]
-            history.append(obs)
+        # final summary
+        print("Final ARIMA model summary:")
+        print(self.model.summary())
+        
+        return df_test
 
-        self.model = model_fit
+    def generate_predictions(self, df_test):
+        if self.model is None:
+            raise ValueError("Model has not been trained yet.")
+
+        X = df_test['total_load'].values
+        predictions = []
+
+        for x in X:
+            output = self.model.forecast(steps=1)
+            yhat = output[0]
+            predictions.append(yhat)
+
+        return predictions
         
     
 
-    def generate_predictions(self, df):
+    def generate_predictions1(self, df_test):
        
         #df = self.generate_X_values(start_date, end_date)
-        X = df['total_load'].values
+        X = df_test['total_load'].values
         predictions = []
         
         history = [x for x in X]  # ändrade detta för att lättare träna kanske tar mindre tid?

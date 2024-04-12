@@ -96,6 +96,7 @@ def create_and_train_arima_predictor():
         df = arima_predictor.preprocess_data(df)
         df = arima_predictor.remove_outliers(df)
         model = arima_predictor.train_model(df)
+        
     return model
 
 def generate_predictions_with_arima(start_date, end_date):
