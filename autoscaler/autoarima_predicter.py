@@ -81,13 +81,14 @@ class ARIMAPredictor(Predictor):
             history.append(obs)
 
         self.model = model_fit
+       
         
     
 
-    def generate_predictions(self, df):
+    def generate_predictions(self, df_test):
        
         #df = self.generate_X_values(start_date, end_date)
-        X = df['total_load'].values
+        X = df_test['total_load'].values
         predictions = []
         
         history = [x for x in X]  # ändrade detta för att lättare träna kanske tar mindre tid?
