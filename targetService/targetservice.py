@@ -31,8 +31,8 @@ LoadRecBASE = "http://127.0.0.1:8008/"
 PredictorBASE = "http://127.0.0.1:8010/"
 
 SCALING_THRESHOLD = 0.2
-SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=10), std_dev=timedelta(minutes=0.01))
-SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=10), std_dev=timedelta(minutes=0.01))
+SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=60), std_dev=timedelta(minutes=0.01))
+SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=60), std_dev=timedelta(minutes=0.01))
 
 class TargetService(Resource):
 
@@ -46,8 +46,8 @@ class TargetService(Resource):
             ready_instances: int = 0,
             instance_load: float = 1,
             instance_baseline_load: float = 0.01,
-            starting_load: float = 0.1,
-            terminating_load: float = 0.1,
+            starting_load: float = 0.2,
+            terminating_load: float = 0.2,
     ):
         self.current_time: datetime = current_time
         self.applied_load: float = applied_load
@@ -493,8 +493,9 @@ def calculate_scaling_accuracy(differences: list[float]) -> float:
     """
     Scaling accuracy - The average difference.
     """
-    mean_difference = statistics.mean(differences)
-    return mean_difference
+    squared_differences = [diff ** 2 for diff in differences]
+    mean_squared_difference = statistics.mean(squared_differences)
+    return mean_squared_difference
 
 
 def calculate_differences(service: TargetService) -> float:
@@ -502,11 +503,10 @@ def calculate_differences(service: TargetService) -> float:
     Difference between the number of instances and the number of instances required.
     """
     current_instances = service.count(ServiceInstanceState.READY)
-    processed_load = service.processed_load
-    total_load = service.experienced_load
-    instances_needed = total_load/processed_load
-    difference = abs(instances_needed-current_instances)
-    return difference
+    processed_load  = service.processed_load 
+    total_load= service.experienced_load
+    instances_needed = (total_load/processed_load) / current_instances
+    return instances_needed
 
 #OLD
 def simulate_run():
