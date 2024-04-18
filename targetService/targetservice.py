@@ -464,9 +464,12 @@ def plot_loads_minutes(
         predicted_experienced_loads: list[float], 
         predicted_instances: list[int], 
         predicted_ready_instances: list[int]
+
+        
 ):
 
     fig, axs = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+    #print (predicted_load_list)
 
     axs[0].plot(minutes, experienced_loads, '-r', label='Experienced load (Without Prediction)')
     axs[0].plot(minutes, predicted_experienced_loads, '-g', label='Experienced load (With Prediction)')

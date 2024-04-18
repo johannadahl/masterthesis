@@ -73,7 +73,7 @@ class ARIMAPredictor(Predictor):
         size = int(len(X) * 0.66)
         X_train, X_test = X[:size], X[size:]
 
-        order_nasa = (2, 1, 3)
+        order_nasa = (1, 0, 0)
 
         #model = ARIMA(X, dates=index, order=order_nasa)
         model = ARIMA(df, order=order_nasa)
@@ -89,16 +89,16 @@ class ARIMAPredictor(Predictor):
     def generate_predictions(self, df):
         if self.model is None:
             raise ValueError("Model has not been trained yet.")
-
         
         X = df['applied_load'].values
+
+        #print("from GENERATE_PREDICTIONS print X: ",X)
         Y = df.index
-
-        
         forecast_steps = len(df)  # Forecast the entire remaining series
-
         
         predictions = self.model.forecast(steps=forecast_steps)
+        print("LENGTH OF FORECAST_ STEPs", forecast_steps )
+        print("predictions from generate_predictions:", predictions)
         #print( "predictions from generate_predictions")
         #print(predictions)
 
@@ -106,22 +106,22 @@ class ARIMAPredictor(Predictor):
 
     
 
-
     def generate_predictions3(self, df):
         if self.model is None:
             raise ValueError("Model has not been trained yet.")
 
         #X = df['timestamp'].values.reshape(-1, 1) 
         print("Här printas df")
-        print(df)
+        #print(df)
         X = df.index
         ("här printas index från dataframe")
         print(X)
 
-        start_date="1995-07-01 00:02:00"
+        start_date="1995-07-01 00:01:00"
         end_date="1995-07-12 00:01:00"
 
-        predictions = self.model.forecast()  
+        predictions = self.model.forecast(steps = 37313) 
+        print(predictions) 
         return predictions
 
 
