@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from numpy import mean
 from numpy import std
 import pmdarima as pm
+import numpy
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -65,46 +66,35 @@ class ARIMAPredictor(Predictor):
         auto_arima = pm.auto_arima(df_train, stepwise = False, seasonal = False)
         auto_arima
 
-
     def train_model(self, df):
+        X = df['applied_load']
+        print("mitt i träningen",df)
+        self.index = df.index
+        print(self.index)
 
-        X = df['applied_load'].values
-        index = pd.to_datetime(df.index)
-        size = int(len(X) * 0.66)
-        X_train, X_test = X[:size], X[size:]
+        self.order = (1, 0, 0)
+        self.model = ARIMA(X, order=self.order)
 
-        order_nasa = (2, 1, 3)
+        self.model = self.model.fit()
 
-        #model = ARIMA(X, dates=index, order=order_nasa)
-        model = ARIMA(df, order=order_nasa)
-        self.model = model.fit()
-
-        #modellen har tränats-print
         print("Final ARIMA model summary:")
         print(self.model.summary())
-        
-        return model
-    
+        return self.model
 
-    def generate_predictions(self, df):
+    def date_to_index(self, date):
+
+            return date   
+    
+    def generate_predictions(self, start_date, end_date):
         if self.model is None:
             raise ValueError("Model has not been trained yet.")
 
-        
-        X = df['applied_load'].values
-        Y = df.index
-
-        
-        forecast_steps = len(df)  # Forecast the entire remaining series
-
-        
-        predictions = self.model.forecast(steps=forecast_steps)
-        #print( "predictions from generate_predictions")
-        #print(predictions)
+        # Make predictions
+        predictions = self.model.predict(start=start_date, end=end_date, typ='levels') ## When typ='levels', the predict method returns the forecasted values in the original scale of the data and not the differenced scale.
 
         return predictions
 
-    
+        # create a differenced series
 
 
     def generate_predictions3(self, df):
