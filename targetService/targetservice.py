@@ -406,7 +406,11 @@ def simulate_run_minutes():
         current_time += step
 
         if (current_time + future_step) in df_predictions['index'].values and not df_predictions['pred'].isnull().all():
-            future_load = weighted_average_load(df_predictions, current_time, 60, 10)
+            """
+            Det är alltså här vi titttar in på framtida värden!
+            Just nu är den satt på 30 min+-10min fram, alltså viktade avarage pland prediktade värden 20-50 fram
+            """
+            future_load = weighted_average_load(df_predictions, current_time, 30, 5) 
         else:
             future_load = None  # No prediction available
         
