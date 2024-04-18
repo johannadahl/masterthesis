@@ -67,44 +67,87 @@ class ARIMAPredictor(Predictor):
 
 
     def train_model(self, df):
+
         X = df['applied_load'].values
+        index = pd.to_datetime(df.index)
         size = int(len(X) * 0.66)
-        df_train, df_test = X[0:size], X[size:]
+        X_train, X_test = X[:size], X[size:]
 
-
-        history = [x for x in df_train]
         order_nasa = (2, 1, 3)
-    
-        
-        model = ARIMA(history, order=order_nasa)
+
+        #model = ARIMA(X, dates=index, order=order_nasa)
+        model = ARIMA(df, order=order_nasa)
         self.model = model.fit()
 
-        # final summary
+        #modellen har tränats-print
         print("Final ARIMA model summary:")
         print(self.model.summary())
         
-        return df_test
+        return model
+    
 
-    def generate_predictions(self, df_test):
+    def generate_predictions(self, df):
         if self.model is None:
             raise ValueError("Model has not been trained yet.")
 
-        X = df_test['total_load'].values
+        
+        X = df['applied_load'].values
+        Y = df.index
+
+        
+        forecast_steps = len(df)  # Forecast the entire remaining series
+
+        
+        predictions = self.model.forecast(steps=forecast_steps)
+        #print( "predictions from generate_predictions")
+        #print(predictions)
+
+        return predictions
+
+    
+
+
+    def generate_predictions3(self, df):
+        if self.model is None:
+            raise ValueError("Model has not been trained yet.")
+
+        #X = df['timestamp'].values.reshape(-1, 1) 
+        print("Här printas df")
+        print(df)
+        X = df.index
+        ("här printas index från dataframe")
+        print(X)
+
+        start_date="1995-07-01 00:02:00"
+        end_date="1995-07-12 00:01:00"
+
+        predictions = self.model.forecast()  
+        return predictions
+
+
+    def generate_predictions2(self, df):
+        if self.model is None:
+            raise ValueError("Model has not been trained yet.")
+
+        X = df['applied_load'].values
+        size = int(len(X) * 0.66)
+        df_test = X[size:]
+        X = df_test['applied_load'].values
         predictions = []
 
         for x in X:
+            
             output = self.model.forecast(steps=1)
             yhat = output[0]
             predictions.append(yhat)
-
-        return predictions
         
+        return predictions
     
 
     def generate_predictions1(self, df_test):
        
         #df = self.generate_X_values(start_date, end_date)
-        X = df_test['total_load'].values
+        X = df_test['applied_load'].values
         predictions = []
         
         history = [x for x in X]  # ändrade detta för att lättare träna kanske tar mindre tid?
