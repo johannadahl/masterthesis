@@ -406,7 +406,11 @@ def simulate_run_minutes():
         current_time += step
 
         if (current_time + future_step) in df_predictions['index'].values and not df_predictions['pred'].isnull().all():
-            future_load = weighted_average_load(df_predictions, current_time, 60, 10)
+            """
+            Det är alltså här vi titttar in på framtida värden!
+            Just nu är den satt på 30 min+-10min fram, alltså viktade avarage pland prediktade värden 20-50 fram
+            """
+            future_load = weighted_average_load(df_predictions, current_time, 30, 5) 
         else:
             future_load = None  # No prediction available
         
@@ -527,152 +531,6 @@ def calculate_differences(service: TargetService) -> float:
     total_load= service.experienced_load
     instances_needed = (total_load/processed_load) / current_instances
     return instances_needed
-
-#OLD
-def simulate_run():
-    response = requests.get(
-    LoadGenBASE + "load_generator",
-    params={"start_date": start_date,"end_date":end_date, "resample_frequency": resample_frequency}
-)
-    response_data = response.json()
-    parsed_data = json.loads(response_data)
-    
-    predictions = requests.post(PredictorBASE + "predict", 
-                      json={"start_date": start_date,
-                            "end_date": end_date}
-                            )
-    predictions_data = predictions.json()
-    df_predictions = pd.DataFrame(predictions_data)
-    df_predictions['index'] = pd.to_datetime(df_predictions['index'], unit='ms')
-    if 'pred' not in df_predictions.columns:
-        # If not, create the "pred" column and fill it with None
-        df_predictions['pred'] = None
-
-    try:
-        df_parsed = pd.DataFrame(parsed_data)  # Convert JSON data to DataFrame
-        df_parsed = remove_outliers(df_parsed)
-        df_parsed['time'] = pd.to_datetime(df_parsed['time'], unit='ms')
-        print(df_parsed)
-        df_minutes = df_parsed.copy()
-
-        #TO GET THE ROLLING AVARAGE PER MINUTE 
-        df_minutes["method_count"] = rolling_average(df_minutes["method_count"].to_list(), 60)
-
-        df_hourly = df_parsed.resample('H', on='time').sum()
-        df_hourly = df_hourly.reset_index()
-        df_hourly['method_count'] = df_hourly['method_count'].astype(float)
-        last_row_timestamp = df_hourly.iloc[-1]['time'].date()
-        end_date_date = datetime.strptime(end_date, "%Y-%m-%d").date()
-        if last_row_timestamp == end_date_date:
-            df_hourly = df_hourly.iloc[:-1]  #Remove the last row
-        print("Received DataFrame:")
-        print(df_hourly)
-    except ValueError as e:
-        print("Error:", e)
-        
-    per_hour_loads = df_hourly["method_count"]
-
-    current_time = df_hourly['time'].iloc[0]
-    step = timedelta(hours=1)
-
-    service = TargetService(
-        current_time=current_time,
-        applied_load=per_hour_loads[0],
-        scale_up_time=SCALE_UP_TIME,
-        scale_down_time=SCALE_DOWN_TIME,
-        ready_instances=2
-    )
-    future_service = TargetService(
-        current_time=current_time,
-        applied_load=per_hour_loads[0],
-        scale_up_time=SCALE_UP_TIME,
-        scale_down_time=SCALE_DOWN_TIME,
-        ready_instances=2
-    )
-
-    experienced_loads = []
-    ready_instances = []
-    instances = []
-
-    predicted_experienced_loads = []
-    predicted_ready_instances = []
-    predicted_instances = []
-
-    for load in per_hour_loads:
-
-        if (current_time + step) in df_predictions['index'].values:
-            future_load = df_predictions.loc[df_predictions['index'] == (current_time + step), 'pred'].iloc[0]
-        else:
-            future_load = None  # No prediction available
-        
-        service.update(
-            current_time=current_time,
-            applied_load=load,
-            delta_instances=lambda service: calculate_instances(service, None)
-        )
-
-        experienced_loads.append(service.experienced_load)
-        ready_instances.append(service.count(ServiceInstanceState.READY))
-        instances.append(len(service.instances))
-
-     #   requests.post(LoadRecBASE + "loadrecorder",
-     #                 json={"applied_load": service.applied_load, 
-     #                       "experienced_load": service.experienced_load,
-     #                       "current_time": str(service.current_time),
-     #                       "instances": len(service.instances)})
-        #Simulate service update with prediction values aswell
-        future_service.update(
-            current_time=current_time,
-            applied_load=load,
-            delta_instances=lambda future_service: calculate_instances(future_service, future_load)
-        )
-        predicted_experienced_loads.append(future_service.experienced_load)
-        predicted_ready_instances.append(future_service.count(ServiceInstanceState.READY))
-        predicted_instances.append(len(future_service.instances))
-
-        current_time += step
-
-    hours = [
-        i
-        for i in range(len(df_hourly))
-    ]
-    predicted_load_list = df_predictions['pred'].tolist()
-    return hours, per_hour_loads, experienced_loads, instances, ready_instances, predicted_load_list, predicted_experienced_loads, predicted_instances, predicted_ready_instances
-
-#OLD
-def plot_loads(
-        hours: list[int],
-        applied_loads: list[float],
-        experienced_loads: list[float],
-        total_instances: list[int],
-        ready_instances: list[int],
-        predicted_load_list: list[float], 
-        predicted_experienced_loads: list[float], 
-        predicted_instances: list[int], 
-        predicted_ready_instances: list[int]
-):
-
-    fig, axs = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
-
-    axs[0].plot(hours, experienced_loads, '-r', label='Experienced load (Without Prediction)')
-    axs[0].plot(hours, predicted_experienced_loads, '-g', label='Experienced load (With Prediction)')
-    axs[0].plot(hours, applied_loads, '-b', label='Applied load')
-    axs[0].plot(hours, predicted_load_list, color='orange',  label='Predicted applied Load')
-    axs[0].set_ylabel('Load')
-    axs[0].grid()
-    axs[0].legend()
-
-   # axs[1].plot(hours, total_instances, '-r', label='Total instances (Without Prediction)')
-   # axs[1].plot(hours, predicted_instances, '-g', label='Total instances (With Prediction)')
-    axs[1].plot(hours, ready_instances, '-b', label='Ready instances (Without Prediction)')
-    axs[1].plot(hours, predicted_ready_instances, color='orange', label='Ready instances (With Prediction)')
-    axs[1].set_xlabel('Time (hours)')
-    axs[1].set_ylabel('Instances')
-    axs[1].grid()
-    axs[1].legend()
-
-    plt.tight_layout()
-    plt.show()
 
 def main():
     args = simulate_run_minutes()
