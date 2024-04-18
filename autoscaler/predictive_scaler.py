@@ -102,19 +102,13 @@ def create_and_train_arima_predictor():
 
 def generate_predictions_with_arima(start_date, end_date):
     df = arima_predictor.generate_X_values(start_date, end_date)
- #   arima_predictor.index = df.index
- #   print(arima_predictor.index )
     predictions = arima_predictor.generate_predictions(start_date, end_date)
-    print(predictions)
     df['pred'] = predictions
-    print(df)
     df_with_predictions = df.drop(columns=df.columns.difference(['pred']))
-    # kom ihåg listobjekt togs bort 
     end_date_dt = pd.to_datetime(end_date)
     start_date_dt = pd.to_datetime(start_date)
     df_with_predictions = df_with_predictions[~df_with_predictions.index.duplicated(keep='last')]
     df_predictions = df_with_predictions.loc[start_date_dt:end_date_dt - pd.Timedelta(minutes=1)]
-    print(df_predictions)
     return df_predictions
 
 def write_to_latex(df, filename):
