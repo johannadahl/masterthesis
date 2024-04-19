@@ -267,7 +267,7 @@ def calculate_instances(
             scaling_factor = max(scaling_factor, scaling_factor_future)
         else:
             #Sätt min om man vill va agressiv och max om man vill vara säker
-            scaling_factor = min(scaling_factor, scaling_factor_future)
+            scaling_factor = max(scaling_factor, scaling_factor_future)
 
     current_instances = service.count(ServiceInstanceState.READY)
     starting_instances = service.count(ServiceInstanceState.STARTING)
@@ -410,7 +410,7 @@ def simulate_run_minutes():
             Det är alltså här vi titttar in på framtida värden!
             Just nu är den satt på 30 min+-10min fram, alltså viktade avarage pland prediktade värden 20-50 fram
             """
-            future_load = weighted_average_load(df_predictions, current_time, 30, 5) 
+            future_load = weighted_average_load(df_predictions, current_time, 60, 10) 
         else:
             future_load = None  # No prediction available
         
