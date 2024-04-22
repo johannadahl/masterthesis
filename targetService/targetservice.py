@@ -31,8 +31,8 @@ LoadRecBASE = "http://127.0.0.1:8008/"
 PredictorBASE = "http://127.0.0.1:8010/"
 
 SCALING_THRESHOLD = 0.2
-SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=30), std_dev=timedelta(minutes=0.01))
-SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=30), std_dev=timedelta(minutes=0.01))
+SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=60), std_dev=timedelta(minutes=0.01))
+SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=60), std_dev=timedelta(minutes=0.01))
 
 class TargetService(Resource):
 
@@ -385,6 +385,8 @@ def simulate_run_minutes():
         ready_instances=40
     )
     service_accuracy_differences = []
+    service_squared_accuracy_differences = []
+
     future_service = TargetService(
         current_time=current_time,
         applied_load=per_minute_loads[0],
@@ -393,6 +395,7 @@ def simulate_run_minutes():
         ready_instances=40
     )
     future_service_accuracy_differences = []
+    future_service_squared_accuracy_differences = []
 
     experienced_loads = []
     ready_instances = []
@@ -423,7 +426,8 @@ def simulate_run_minutes():
         experienced_loads.append(service.experienced_load)
         ready_instances.append(service.count(ServiceInstanceState.READY))
         instances.append(len(service.instances))
-        service_accuracy_differences.append(calculate_differences2(service))
+        service_accuracy_differences.append(calculate_differences(service))
+        service_squared_accuracy_differences.append(calculate_squared_differences(service))
 
         #DET HÄR ÄR UTKOMMENTERAT PGA TAR FÖR LÅNG TID
         #Detta är delen som recordar allt som servicen gör till databasen, alltså lagrar historisk data
@@ -441,7 +445,8 @@ def simulate_run_minutes():
         predicted_experienced_loads.append(future_service.experienced_load)
         predicted_ready_instances.append(future_service.count(ServiceInstanceState.READY))
         predicted_instances.append(len(future_service.instances))
-        future_service_accuracy_differences.append(calculate_differences2(future_service))
+        future_service_accuracy_differences.append(calculate_differences(future_service))
+        future_service_squared_accuracy_differences.append(calculate_squared_differences(future_service))
 
         
 
@@ -453,9 +458,12 @@ def simulate_run_minutes():
     print(df_predictions)
 
     service_accuracy = calculate_scaling_accuracy(service_accuracy_differences)
+    service_squared_accuracy = calculate_scaling_accuracy(service_squared_accuracy_differences)
     future_service_accuracy = calculate_scaling_accuracy(future_service_accuracy_differences)
-    print("Scaling Accuracy without prediction:", service_accuracy)
-    print("Scaling Accuracy with prediction:", future_service_accuracy)
+    future_service_squared_accuracy = calculate_scaling_accuracy(future_service_squared_accuracy_differences)
+
+    print("Scaling Accuracy without prediction:", service_accuracy, " and using squared differences:", service_squared_accuracy)
+    print("Scaling Accuracy with prediction:", future_service_accuracy,  " and using squared differences:", future_service_squared_accuracy)
     return minutes, per_minute_loads, experienced_loads, instances, ready_instances, predicted_load_list, predicted_experienced_loads, predicted_instances, predicted_ready_instances
 
 def plot_loads_minutes(
@@ -507,9 +515,12 @@ def calculate_total_load_capability(service: TargetService):
     
     return total_load_capability
 
-def calculate_differences2(service: TargetService) -> float:
+def calculate_differences(service: TargetService) -> float:
+    """
+    Difference between the number of instances and the number of instances required to meet the load.
+    """
     optimal_load_capacity = service.applied_load
-    optimal_instance_count = optimal_load_capacity / service.instance_load_capability
+    optimal_instance_count = (optimal_load_capacity / service.instance_load_capability)*2
     current_instance_count = service.count(ServiceInstanceState.READY)
     error = abs(optimal_instance_count - current_instance_count)
     return error
@@ -521,16 +532,16 @@ def calculate_scaling_accuracy(differences: list[float]) -> float:
     mean_difference = statistics.mean(differences)
     return mean_difference
 
-
-def calculate_differences(service: TargetService) -> float:
+def calculate_squared_differences(service: TargetService) -> float:
     """
-    Difference between the number of instances and the number of instances required to meet the load.
+    Squared difference between the number of instances and the number of instances required to meet the load.
+    -> giving more importance to larger errors. 
     """
-    current_instances = service.count(ServiceInstanceState.READY)
-    processed_load  = service.processed_load 
-    total_load= service.experienced_load
-    instances_needed = (total_load/processed_load) / current_instances
-    return instances_needed
+    optimal_load_capacity = service.applied_load
+    optimal_instance_count = (optimal_load_capacity / service.instance_load_capability) * 2
+    current_instance_count = service.count(ServiceInstanceState.READY)
+    squared_error = (optimal_instance_count - current_instance_count) ** 2
+    return squared_error
 
 def main():
     args = simulate_run_minutes()
