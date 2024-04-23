@@ -1,8 +1,13 @@
 ##Script to create  a Prophet-Predictor Class Object
 from predictor import Predictor
 from prophet import Prophet
+from prophet.diagnostics import performance_metrics
+from prophet.plot import plot_cross_validation_metric
+from prophet.diagnostics import cross_validation
 from sklearn.metrics import mean_absolute_error
 import matplotlib.pyplot as plt
+import itertools 
+
 import pandas as pd
 import seaborn as sns
 import warnings
@@ -63,10 +68,52 @@ class ProphetPredictor(Predictor):
         return train_prophet
     
     def create_model(self,train):
-        model = Prophet()
+        model = Prophet(changepoint_prior_scale = 0.001, seasonality_prior_scale = 0.01)
         model.fit(train)
         self.model = model
         return model
+    
+    def cross_validation_prophet(self):
+        df_cv = cross_validation(self.model, initial='7 days', period='1 days', horizon = '7 days')
+        df_p = performance_metrics(df_cv)
+        print(df_p)
+
+    def hypertune_parameters(self,train_set):
+        param_grid = {  
+            'changepoint_prior_scale': [0.001, 0.01, 0.1, 0.5],
+            'seasonality_prior_scale': [0.01, 0.1, 1.0, 10.0]
+        }
+
+        # Generate all combinations of parameters
+        all_params = [dict(zip(param_grid.keys(), v)) for v in itertools.product(*param_grid.values())]
+        rmses = [] 
+
+        # Use cross validation to evaluate all parameters
+        for params in all_params:
+            m = Prophet(**params).fit(train_set)  # Fit model with given params
+            df_cv = cross_validation(m, initial='7 days', period='1 days', horizon = '7 days', parallel='processes')
+            df_p = performance_metrics(df_cv, rolling_window=1)
+            rmses.append(df_p['rmse'].values[0])
+
+        # Find the best parameters
+        tuning_results = pd.DataFrame(all_params)
+        tuning_results['rmse'] = rmses
+        print(tuning_results)
+        tuning_results.sort_values('rmse')
+        print(tuning_results)
+
+        tuning_results.sort_values('rmse').reset_index(drop=True).iloc[0]
+        print(tuning_results)
+
+        params_dictionary = dict(tuning_results.sort_values('rmse').reset_index(drop=True).drop('rmse',axis='columns').iloc[0])
+        print(tuning_results)
+
+        m = Prophet(changepoint_prior_scale = params_dictionary['changepoint_prior_scale'], 
+                    seasonality_prior_scale = params_dictionary['seasonality_prior_scale'])
+        m.fit(train_set)
+        self.model = m
+        return m
+
     
     def make_predictions(self,test):
         test.index.names = ["timestamp"]

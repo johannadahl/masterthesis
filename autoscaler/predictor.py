@@ -68,4 +68,5 @@ class Predictor():
     ## MAPE - gives the avarage percent off what our prediction is from the ground truth.
     def mean_absolute_percentage_error(self, y_true, y_pred): 
         y_true, y_pred = np.array(y_true), np.array(y_pred)
-        return np.mean(np.abs((y_true - y_pred) / y_true)) * 100
+        mape = np.mean(np.abs((y_true - y_pred) / y_true)) * 100
+        return mape
