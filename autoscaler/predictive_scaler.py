@@ -98,18 +98,16 @@ def create_and_train_arima_predictor():
         df = arima_predictor.remove_outliers(df)
         print("den som de tränas på", df)
         model = arima_predictor.train_model(df)
+        #arima_predictor.validate_model(df)
     return model
 
 def generate_predictions_with_arima(start_date, end_date):
     df = arima_predictor.generate_X_values(start_date, end_date)
- #   arima_predictor.index = df.index
- #   print(arima_predictor.index )
     predictions = arima_predictor.generate_predictions(start_date, end_date)
     print(predictions)
     df['pred'] = predictions
     print(df)
     df_with_predictions = df.drop(columns=df.columns.difference(['pred']))
-    # kom ihåg listobjekt togs bort 
     end_date_dt = pd.to_datetime(end_date)
     start_date_dt = pd.to_datetime(start_date)
     df_with_predictions = df_with_predictions[~df_with_predictions.index.duplicated(keep='last')]
