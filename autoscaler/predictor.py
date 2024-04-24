@@ -35,7 +35,7 @@ class Predictor():
 
     def remove_outliers(self,df):
         Q1 = df['applied_load'].quantile(0.35)
-        Q3 = df['applied_load'].quantile(0.90)
+        Q3 = df['applied_load'].quantile(0.80)
 
         IQR = Q3 - Q1
 
