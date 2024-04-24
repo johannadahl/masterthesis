@@ -31,8 +31,8 @@ LoadRecBASE = "http://127.0.0.1:8008/"
 PredictorBASE = "http://127.0.0.1:8010/"
 
 SCALING_THRESHOLD = 0.2
-SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=10), std_dev=timedelta(minutes=0.01))
-SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=10), std_dev=timedelta(minutes=0.01))
+SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=30), std_dev=timedelta(minutes=0.01))
+SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=30), std_dev=timedelta(minutes=0.01))
 
 class TargetService(Resource):
 
@@ -46,8 +46,8 @@ class TargetService(Resource):
             ready_instances: int = 0,
             instance_load: float = 1,
             instance_baseline_load: float = 0.01,
-            starting_load: float = 0.1,
-            terminating_load: float = 0.1,
+            starting_load: float = 0.2,
+            terminating_load: float = 0.2,
     ):
         self.current_time: datetime = current_time
         self.applied_load: float = applied_load
@@ -419,7 +419,7 @@ def simulate_run_minutes():
         experienced_loads.append(service.experienced_load)
         ready_instances.append(service.count(ServiceInstanceState.READY))
         instances.append(len(service.instances))
-        service_accuracy_differences.append(calculate_differences(service))
+        service_accuracy_differences.append(calculate_differences2(service))
 
         #DET HÄR ÄR UTKOMMENTERAT PGA TAR FÖR LÅNG TID
         #Detta är delen som recordar allt som servicen gör till databasen, alltså lagrar historisk data
@@ -437,7 +437,7 @@ def simulate_run_minutes():
         predicted_experienced_loads.append(future_service.experienced_load)
         predicted_ready_instances.append(future_service.count(ServiceInstanceState.READY))
         predicted_instances.append(len(future_service.instances))
-        future_service_accuracy_differences.append(calculate_differences(future_service))
+        future_service_accuracy_differences.append(calculate_differences2(future_service))
 
         
 
@@ -473,8 +473,8 @@ def plot_loads_minutes(
 
     axs[0].plot(minutes, experienced_loads, '-r', label='Experienced load (Without Prediction)')
     axs[0].plot(minutes, predicted_experienced_loads, '-g', label='Experienced load (With Prediction)')
-    axs[0].plot(minutes, predicted_load_list, color='orange',  label='Predicted applied Load')
     axs[0].plot(minutes, applied_loads, '-b', label='Applied load')
+    axs[0].plot(minutes, predicted_load_list, color='orange',  label='Predicted applied Load')
     axs[0].set_ylabel('Load')
     axs[0].grid()
     axs[0].legend()
@@ -492,6 +492,27 @@ def plot_loads_minutes(
     plt.show()
 
 
+def calculate_total_load_capability(service: TargetService):
+    total_load_capability = 0
+    constant_loads = {
+            ServiceInstanceState.STARTING: service.starting_load,
+            ServiceInstanceState.READY: service.instance_baseline_load,
+            ServiceInstanceState.TERMINATING: service.terminating_load
+        }
+
+    for instance in service.instances:
+        constant_load = constant_loads.get(instance.state) or 0
+        total_load_capability += instance.load_capability - constant_load
+    
+    return total_load_capability
+
+def calculate_differences2(service: TargetService) -> float:
+    optimal_load_capacity = service.applied_load
+    optimal_instance_count = optimal_load_capacity / service.instance_load_capability
+    current_instance_count = service.count(ServiceInstanceState.READY)
+    error = abs(optimal_instance_count - current_instance_count)
+    return error
+
 def calculate_scaling_accuracy(differences: list[float]) -> float:
     """
     Scaling accuracy - The average difference.
@@ -502,14 +523,13 @@ def calculate_scaling_accuracy(differences: list[float]) -> float:
 
 def calculate_differences(service: TargetService) -> float:
     """
-    Difference between the number of instances and the number of instances required.
+    Difference between the number of instances and the number of instances required to meet the load.
     """
     current_instances = service.count(ServiceInstanceState.READY)
-    processed_load = service.processed_load
-    total_load = service.experienced_load
-    instances_needed = total_load/processed_load
-    difference = abs(instances_needed-current_instances)
-    return difference
+    processed_load  = service.processed_load 
+    total_load= service.experienced_load
+    instances_needed = (total_load/processed_load) / current_instances
+    return instances_needed
 
 #OLD
 def simulate_run():
@@ -639,8 +659,8 @@ def plot_loads(
 
     axs[0].plot(hours, experienced_loads, '-r', label='Experienced load (Without Prediction)')
     axs[0].plot(hours, predicted_experienced_loads, '-g', label='Experienced load (With Prediction)')
-    axs[0].plot(hours, predicted_load_list, color='orange',  label='Predicted applied Load')
     axs[0].plot(hours, applied_loads, '-b', label='Applied load')
+    axs[0].plot(hours, predicted_load_list, color='orange',  label='Predicted applied Load')
     axs[0].set_ylabel('Load')
     axs[0].grid()
     axs[0].legend()
