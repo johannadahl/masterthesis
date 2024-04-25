@@ -27,6 +27,7 @@ class ARIMAPredictor(Predictor):
 
     def __init__(self):
         self.model = None
+        self.order = None
 
     def create_df(self,df):
         df = df.copy()
@@ -119,7 +120,27 @@ class ARIMAPredictor(Predictor):
         self.order = (2,1,3) # order from autoarima  (cna be found in PACF and residuals plots as well)
         self.seasonal_order = (1,1,1,24) # seasonal order from autoarima (can be found in PACF and residuals plots as well)
         self.model = SARIMAX(X_train, order=self.order, seasonal_order=self.seasonal_order)
-        #self.model = ARIMA(X_train, order=self.order)
+        #self.model = ARIMA(X_train, order=self.order) 
+        """
+        De som behövdes läggas till här är en index log, så att den fattar hur den ska hantera framtida prediktioner. 
+        Den lägger alltså till timestamps för hela den råa NASA datan, även om den bara tränar på halva.
+        Annars hittar den inte när man önskar predictions för index som den inte har tränat på (tex on vill ha predictions mellan 25-30 julli). 
+        
+        Detta kanske vi kan kika på snyggare lösning
+
+        """
+        #end_date = pd.to_datetime('1995-07-30 00:00:00') #End date in nasa_full dataset
+        #extended_index = pd.date_range(start=df.index.min(), end=end_date, freq='T')
+
+        #df = df.reindex(extended_index)
+        #X = df['applied_load']
+        #print("mitt i träningen",df)
+        #self.index = df.index
+        #print(self.index)
+
+        #self.order = (3, 0, 2)
+        #self.model = ARIMA(X, order=self.order)
+
         self.model = self.model.fit()
 
         print("Final ARIMA model summary:")

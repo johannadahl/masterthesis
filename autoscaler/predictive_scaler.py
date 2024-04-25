@@ -6,6 +6,7 @@ from Prophet_predictor import ProphetPredictor
 from autoarima_predicter import ARIMAPredictor
 import threading
 import pandas as pd
+import matplotlib.pyplot as plt
 
 app = Flask(__name__)
 xgboost_predictor = XGBoostPredictor()
@@ -23,9 +24,9 @@ def predict():
     Ändrade det här, så nu är det bara en rad som man måste "ändra" om man vill byta prediktionsmodell (kommentera ut de som inte ska användas)
     Detta kan struktureras upp bättre sen med args men funkar så länge,
     """""
-    df_predictions = generate_predictions_with_arima(start_date, end_date)
+   # df_predictions = generate_predictions_with_arima(start_date, end_date)
    # df_predictions = generate_predictions_with_xgboost(start_date, end_date)
-    #df_predictions = generate_predictions_with_prophet(start_date, end_date)
+    df_predictions = generate_predictions_with_prophet(start_date, end_date)
     payload = df_predictions.reset_index().to_json(orient='records')
     return payload
 
@@ -67,6 +68,7 @@ def create_and_train_prophet_predictor():
         df = prophet_predictor.add_lags_prophet(df)
         df = prophet_predictor.fix_prophet_format(df)
         model = prophet_predictor.create_model(df)
+     #   model = prophet_predictor.hypertune_parameters(df)
         return model
     else:
         return None
@@ -78,7 +80,7 @@ def generate_predictions_with_prophet(start_date, end_date):
         df = prophet_predictor.create_features(df)
         df = prophet_predictor.add_lags_prophet(df) 
         df_with_predictions = prophet_predictor.make_predictions(df)
-#        prophet_predictor.plot_trends(df_with_predictions)
+       # prophet_predictor.plot_trends(df_with_predictions)
         df_with_predictions.rename(columns={"yhat": "pred","ds":"index" }, inplace=True)     
         df_with_predictions.set_index("index", inplace=True)   
         df_with_predictions = df_with_predictions.drop(columns=df_with_predictions.columns.difference(['pred']))
@@ -104,15 +106,12 @@ def create_and_train_arima_predictor():
 def generate_predictions_with_arima(start_date, end_date):
     df = arima_predictor.generate_X_values(start_date, end_date)
     predictions = arima_predictor.generate_predictions(start_date, end_date)
-    print(predictions)
     df['pred'] = predictions
-    print(df)
     df_with_predictions = df.drop(columns=df.columns.difference(['pred']))
     end_date_dt = pd.to_datetime(end_date)
     start_date_dt = pd.to_datetime(start_date)
     df_with_predictions = df_with_predictions[~df_with_predictions.index.duplicated(keep='last')]
     df_predictions = df_with_predictions.loc[start_date_dt:end_date_dt - pd.Timedelta(minutes=1)]
-    print(df_predictions)
     return df_predictions
 
 def write_to_latex(df, filename):
@@ -131,8 +130,9 @@ if __name__ == "__main__":
     """"" 
    # create_and_train_xgboost_predictor()
    # generate_predictions_with_xgboost("1998-05-06","1998-05-07")
-    #create_and_train_prophet_predictor()
-    create_and_train_arima_predictor()
+    create_and_train_prophet_predictor()
+   # generate_predictions_with_prophet("1995-07-06","1995-07-25")
+   # create_and_train_arima_predictor()
    # generate_predictions_with_arima("1995-07-05 00:00:00","1995-07-07 00:00:00")
     flask_thread = threading.Thread(target=start_flask) #Flaskservern måste köras på en egen tråd! annars kan man inte köra annan kod samtidigt 
     flask_thread.start()
