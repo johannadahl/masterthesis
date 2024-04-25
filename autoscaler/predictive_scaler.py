@@ -100,6 +100,7 @@ def create_and_train_arima_predictor():
         df = arima_predictor.remove_outliers(df)
         print("den som de tränas på", df)
         model = arima_predictor.train_model(df)
+        #arima_predictor.validate_model(df)
     return model
 
 def generate_predictions_with_arima(start_date, end_date):

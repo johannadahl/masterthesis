@@ -6,8 +6,7 @@ import matplotlib.pyplot as plt
 from numpy import mean
 from numpy import std
 import pmdarima as pm
-import numpy
-
+from sklearn.model_selection import TimeSeriesSplit
 import warnings
 warnings.filterwarnings("ignore")
 from pmdarima import auto_arima
@@ -15,10 +14,13 @@ from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.stattools import adfuller
 #from pandas import datetime
 from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.statespace.sarimax import SARIMAX
 from sklearn.metrics import mean_squared_error
 from math import sqrt
 import pandas as pd
 from matplotlib import pyplot
+from sklearn.metrics import mean_squared_error
+from math import sqrt
 
 
 class ARIMAPredictor(Predictor):
@@ -66,8 +68,59 @@ class ARIMAPredictor(Predictor):
     def apply_autoarima(self,df_train):
         auto_arima = pm.auto_arima(df_train, stepwise = False, seasonal = False)
         auto_arima
+        
+
+    def train_model_w(self, df):
+        self.order = (1, 0, 0)  #default
+        self.model = None #(walk forward validation)
+
+    def generate_predictions_w(self, df):
+        if self.model is None:
+            raise ValueError("Model has not been trained yet.")
+        
+        predictions = []
+
+        for i in range(len(df)):
+            
+            current_timestamp = df.index[i] #timestamp och load
+            current_load = df.iloc[i]['applied_load']
+            
+            
+            if self.model is None: #träna modellen innan den har nåtts av någon typ av data 
+                self.model = ARIMA(current_load, order=self.order)
+                self.model = self.model.fit()
+            else:
+                self.model = self.model.append(current_load)
+                self.model = self.model.fit()
+
+            
+            forecast = self.model.forecast(steps=1) #forecastar ett steg i taget
+            
+            predictions.append(forecast[0])
+        
+        predictions = np.array(predictions)
+        
+        return predictions
+
+
+
+    
 
     def train_model(self, df):
+
+        split_index = int(0.66 * len(df))
+        train_df = df.iloc[:split_index]
+        test_df = df.iloc[split_index:]
+        X_train = train_df['applied_load']
+
+        #X = df['applied_load']
+    
+        self.index = df.index
+        print(self.index)
+        self.order = (2,1,3) # order from autoarima  (cna be found in PACF and residuals plots as well)
+        self.seasonal_order = (1,1,1,24) # seasonal order from autoarima (can be found in PACF and residuals plots as well)
+        self.model = SARIMAX(X_train, order=self.order, seasonal_order=self.seasonal_order)
+        #self.model = ARIMA(X_train, order=self.order) 
         """
         De som behövdes läggas till här är en index log, så att den fattar hur den ska hantera framtida prediktioner. 
         Den lägger alltså till timestamps för hela den råa NASA datan, även om den bara tränar på halva.
@@ -76,56 +129,124 @@ class ARIMAPredictor(Predictor):
         Detta kanske vi kan kika på snyggare lösning
 
         """
-        end_date = pd.to_datetime('1995-07-30 00:00:00') #End date in nasa_full dataset
-        extended_index = pd.date_range(start=df.index.min(), end=end_date, freq='T')
+        #end_date = pd.to_datetime('1995-07-30 00:00:00') #End date in nasa_full dataset
+        #extended_index = pd.date_range(start=df.index.min(), end=end_date, freq='T')
 
-        df = df.reindex(extended_index)
-        X = df['applied_load']
-        print("mitt i träningen",df)
-        self.index = df.index
-        print(self.index)
+        #df = df.reindex(extended_index)
+        #X = df['applied_load']
+        #print("mitt i träningen",df)
+        #self.index = df.index
+        #print(self.index)
 
-        self.order = (3, 0, 2)
-        self.model = ARIMA(X, order=self.order)
+        #self.order = (3, 0, 2)
+        #self.model = ARIMA(X, order=self.order)
 
         self.model = self.model.fit()
 
         print("Final ARIMA model summary:")
         print(self.model.summary())
+
         return self.model
+    
+    def validate_model(self, df):
+        
+        split_index = int(0.66 * len(df))
+        train = df.iloc[:split_index]['applied_load']
+        test = df.iloc[split_index:]['applied_load']
+
+        history = [x for x in train]
+        predictions = []
+
+        #walk forward (istället för att göra en prediction på hela datan) obs tar TID
+        for t in range(len(test)):
+            model = ARIMA(history, order=self.order)
+            model_fit = model.fit()
+            output = model_fit.forecast()
+            yhat = output[0]
+            predictions.append(yhat)
+            obs = test[t]
+            history.append(obs)
+            print('predicted=%f, expected=%f' % (yhat, obs))
+
+        rmse = sqrt(mean_squared_error(test, predictions))
+        print('Test RMSE: %.3f' % rmse)
 
     def date_to_index(self, date):
 
             return date   
     
+    def generate_predictions_old(self, start_date, end_date):
+        if self.model is None:
+            raise ValueError("Model has not been trained yet.")
+
+        predictions = []
+        current_date = start_date
+        while current_date <= end_date:
+            train_end_date = current_date
+            #make the 
+            train_start_date = train_end_date - pd.Timedelta(days=1)  #detta är numera satt som 1 dag 
+            train_data = df.loc[:train_end_date]
+
+            X_train = train_data['applied_load']
+            self.model = ARIMA(X_train, order=self.order)
+            self.model = self.model.fit()
+
+            forecast = self.model.forecast(steps=1)
+
+            current_date += pd.Timedelta(days=1)
+
+            predictions.append(forecast[0])
+
+        return predictions
+    
+
     def generate_predictions(self, start_date, end_date):
         if self.model is None:
             raise ValueError("Model has not been trained yet.")
 
-        # Make predictions
-        predictions = self.model.predict(start=start_date, end=end_date, typ='levels') ## When typ='levels', the predict method returns the forecasted values in the original scale of the data and not the differenced scale.
+        predictions = self.model.predict(start=start_date, end=end_date, typ='levels') 
+        return predictions
 
+    
+    def generate_predictions3(self, start_date, end_date):
+
+        if self.model is None:
+            raise ValueError("Model has not been trained yet.")
+        date_range = pd.date_range(start=start_date, end=end_date, freq='1T')
+        
+        for i in date_range:
+
+           # self.model = self.model.append(current_load)
+            self.model = self.model.fit()
+            predictions = self.model.predict(start=i, end=end_date, typ='levels') 
+
+            self.model = ARIMA(order=self.order)
+            self.model = self.model.fit()
+            
+            #forecast = self.model.forecast(steps=1) #forecastar ett steg i taget
+            #predictions.append(forecast[0])
+        #predictions = np.array(predictions)
+        #predictions = self.model.predict(start=start_date, end=end_date, typ='levels') 
         return predictions
 
         # create a differenced series
 
+    def generate_predictions420(self, start_date, end_date):
 
-    def generate_predictions3(self, df):
         if self.model is None:
             raise ValueError("Model has not been trained yet.")
 
-        #X = df['timestamp'].values.reshape(-1, 1) 
-        print("Här printas df")
-        print(df)
-        X = df.index
-        ("här printas index från dataframe")
-        print(X)
+        date_range = pd.date_range(start=start_date, end=end_date, freq='1T')
+        predictions = []
 
-        start_date="1995-07-01 00:02:00"
-        end_date="1995-07-12 00:01:00"
+        for current_timestamp in date_range:
+            self.model = self.model.fit()
+            prediction = self.model.predict(start=current_timestamp, end=end_date, typ='levels')
+            predictions.append(prediction)
 
-        predictions = self.model.forecast()  
         return predictions
+
+
 
 
     def generate_predictions2(self, df):
@@ -137,7 +258,6 @@ class ARIMAPredictor(Predictor):
         df_test = X[size:]
         X = df_test['applied_load'].values
         predictions = []
-
         for x in X:
             
             output = self.model.forecast(steps=1)
