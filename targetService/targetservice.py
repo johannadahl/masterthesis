@@ -288,7 +288,7 @@ def calculate_instances(
 
 def remove_outliers(df):
         Q1 = df['method_count'].quantile(0.35)
-        Q3 = df['method_count'].quantile(0.90)
+        Q3 = df['method_count'].quantile(0.80)
 
         IQR = Q3 - Q1
 
@@ -370,6 +370,7 @@ def simulate_run_minutes():
         df_predictions['pred'] = None
 
     df_minutes =  get_minut_df(parsed_data)
+    df_minutes = remove_outliers(df_minutes)
         
     per_minute_loads = df_minutes["method_count"] 
 
