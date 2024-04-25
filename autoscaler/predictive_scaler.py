@@ -44,6 +44,8 @@ def create_and_train_xgboost_predictor():
         print(f'Fold scores:{scores}')
    #  #   xgboost_predictor.show_feature_importance(xgboost_predictor.model,df)
         xgboost_predictor.visualize_CV_predictions(xgboost_predictor.model,df,splits)
+        #best_params, best_score = xgboost_predictor.optimize_hyperparameters(df)
+        #print(best_params,best_score)
     return xgboost_predictor
 
 def generate_predictions_with_xgboost(start_date, end_date):
@@ -128,9 +130,9 @@ if __name__ == "__main__":
     """""
     Här tränas först modellerna innan servern startas! Sen kan severn bara igång om man vill testa lite olika target service värden.
     """"" 
-   # create_and_train_xgboost_predictor()
-   # generate_predictions_with_xgboost("1998-05-06","1998-05-07")
-    create_and_train_prophet_predictor()
+    create_and_train_xgboost_predictor()
+   # generate_predictions_with_xgboost("1995-07-16","1995-07-20")
+   # create_and_train_prophet_predictor()
    # generate_predictions_with_prophet("1995-07-06","1995-07-25")
    # create_and_train_arima_predictor()
    # generate_predictions_with_arima("1995-07-05 00:00:00","1995-07-07 00:00:00")
