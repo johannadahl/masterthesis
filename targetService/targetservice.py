@@ -31,6 +31,7 @@ LoadRecBASE = "http://127.0.0.1:8008/"
 PredictorBASE = "http://127.0.0.1:8010/"
 
 SCALING_THRESHOLD = 0.2
+DESIRED_MEAN_LOAD = 0.5
 SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=60), std_dev=timedelta(minutes=0.01))
 SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=60), std_dev=timedelta(minutes=0.01))
 
@@ -243,15 +244,15 @@ def calculate_instances(
     process_utilization = 0 if processed_load == 0 else \
         processed_load / process_capability
 
-    desired_mean_load = 0.5
-    upper_threshold = desired_mean_load + SCALING_THRESHOLD
-    lower_threshold = desired_mean_load - 0.09
+    
+    upper_threshold = DESIRED_MEAN_LOAD + SCALING_THRESHOLD
+    lower_threshold = DESIRED_MEAN_LOAD - 0.09
 
     scaling_factor_future = None
     if future_load is not None:
         future_processed_load = min(future_load, process_capability)
         future_process_utilization = future_processed_load / process_capability
-        scaling_factor_future = future_process_utilization / desired_mean_load
+        scaling_factor_future = future_process_utilization / DESIRED_MEAN_LOAD
 
         if lower_threshold < process_utilization < upper_threshold:
             if lower_threshold < future_process_utilization < upper_threshold:
@@ -260,14 +261,14 @@ def calculate_instances(
         if lower_threshold < process_utilization < upper_threshold:
            return 0
         
-    scaling_factor = process_utilization / desired_mean_load
+    scaling_factor = process_utilization / DESIRED_MEAN_LOAD
 
     if scaling_factor_future is not None:
         if scaling_factor_future > 1 or scaling_factor > 1:
             scaling_factor = max(scaling_factor, scaling_factor_future)
         else:
             #Sätt min om man vill va agressiv och max om man vill vara säker
-            scaling_factor = max(scaling_factor, scaling_factor_future)
+            scaling_factor = min(scaling_factor, scaling_factor_future)
 
     current_instances = service.count(ServiceInstanceState.READY)
     starting_instances = service.count(ServiceInstanceState.STARTING)
@@ -412,9 +413,9 @@ def simulate_run_minutes():
         if (current_time + future_step) in df_predictions['index'].values and not df_predictions['pred'].isnull().all():
             """
             Det är alltså här vi titttar in på framtida värden!
-            Just nu är den satt på 30 min+-10min fram, alltså viktade avarage pland prediktade värden 20-50 fram
+            Just nu är den satt på 60 min+-10min fram, alltså viktade avarage pland prediktade värden 20-50 fram
             """
-            future_load = weighted_average_load(df_predictions, current_time, 60, 10) 
+            future_load = weighted_average_load(df_predictions, current_time, 30, 5) 
         else:
             future_load = None  # No prediction available
         
@@ -521,7 +522,7 @@ def calculate_differences(service: TargetService) -> float:
     Difference between the number of instances and the number of instances required to meet the load.
     """
     optimal_load_capacity = service.applied_load
-    optimal_instance_count = (optimal_load_capacity / service.instance_load_capability)*2
+    optimal_instance_count = (optimal_load_capacity / service.instance_load_capability)/DESIRED_MEAN_LOAD
     current_instance_count = service.count(ServiceInstanceState.READY)
     error = abs(optimal_instance_count - current_instance_count)
     return error
