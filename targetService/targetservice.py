@@ -371,7 +371,7 @@ def simulate_run_minutes():
         df_predictions['pred'] = None
 
     df_minutes =  get_minut_df(parsed_data)
-    df_minutes = remove_outliers(df_minutes)
+  #  df_minutes = remove_outliers(df_minutes)
         
     per_minute_loads = df_minutes["method_count"] 
 
@@ -402,10 +402,13 @@ def simulate_run_minutes():
     experienced_loads = []
     ready_instances = []
     instances = []
+    downtime_occurances = 0
 
     predicted_experienced_loads = []
     predicted_ready_instances = []
     predicted_instances = []
+    prediction_downtime_occurances = 0
+    
 
     for load in per_minute_loads:
         current_time += step
@@ -431,6 +434,10 @@ def simulate_run_minutes():
         service_accuracy_differences.append(calculate_differences(service))
         service_squared_accuracy_differences.append(calculate_squared_differences(service))
 
+        ##Downtime Check
+        if check_downtime(service):
+            downtime_occurances += 1
+
         #DET HÄR ÄR UTKOMMENTERAT PGA TAR FÖR LÅNG TID
         #Detta är delen som recordar allt som servicen gör till databasen, alltså lagrar historisk data
       #  requests.post(LoadRecBASE + "loadrecorder",
@@ -449,9 +456,10 @@ def simulate_run_minutes():
         predicted_instances.append(len(future_service.instances))
         future_service_accuracy_differences.append(calculate_differences(future_service))
         future_service_squared_accuracy_differences.append(calculate_squared_differences(future_service))
-
+        ##Downtime Check
+        if check_downtime(future_service):
+            prediction_downtime_occurances += 1
         
-
     minutes = [
         i
         for i in range(len(df_minutes))
@@ -463,9 +471,16 @@ def simulate_run_minutes():
     service_squared_accuracy = calculate_scaling_accuracy(service_squared_accuracy_differences)
     future_service_accuracy = calculate_scaling_accuracy(future_service_accuracy_differences)
     future_service_squared_accuracy = calculate_scaling_accuracy(future_service_squared_accuracy_differences)
+    uptime_percentage = calculate_uptime_percentage(len(df_minutes), downtime_occurances)
+    prediction_uptime_percentage = calculate_uptime_percentage(len(df_minutes), prediction_downtime_occurances)
 
-    print("Scaling Accuracy without prediction:", service_accuracy, " and using squared differences:", service_squared_accuracy)
-    print("Scaling Accuracy with prediction:", future_service_accuracy,  " and using squared differences:", future_service_squared_accuracy)
+    print("Scaling Accuracy without prediction:", round(service_accuracy,2), " and using squared differences:", round(service_squared_accuracy,2))
+    print("minuter av downtime", downtime_occurances)
+    print("uptime percentage: {:.1%}".format(uptime_percentage))  
+
+    print("Scaling Accuracy with prediction:", round(future_service_accuracy,2),  " and using squared differences:", round(future_service_squared_accuracy,2))
+    print("minuter av downtime", prediction_downtime_occurances)
+    print("uptime percentage: {:.1%}".format(prediction_uptime_percentage))  
     return minutes, per_minute_loads, experienced_loads, instances, ready_instances, predicted_load_list, predicted_experienced_loads, predicted_instances, predicted_ready_instances
 
 def plot_loads_minutes(
@@ -547,6 +562,25 @@ def calculate_squared_differences(service: TargetService) -> float:
     current_instance_count = service.count(ServiceInstanceState.READY)
     squared_error = (optimal_instance_count - current_instance_count) ** 2
     return squared_error
+
+def check_downtime(service: TargetService)-> bool:
+    """
+    Checks if the system can't meet the load during that minute. 
+    """
+    processed_load = service.processed_load
+    applied_load = service.applied_load
+    if processed_load < applied_load:
+        return True
+    else:  
+        return False
+
+def calculate_uptime_percentage(total_time: int, downtime: int) -> float:
+    """
+    Percentage measure on how much of the total simulation the service could handle the applied load.
+    """
+    downtime_percentage = downtime/total_time
+    uptime_percentage = 1 - downtime_percentage
+    return uptime_percentage
 
 def main():
     args = simulate_run_minutes()
