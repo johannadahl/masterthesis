@@ -21,6 +21,8 @@ import pandas as pd
 from matplotlib import pyplot
 from sklearn.metrics import mean_squared_error
 from math import sqrt
+import pmdarima as pm
+
 
 
 class ARIMAPredictor(Predictor):
@@ -65,10 +67,7 @@ class ARIMAPredictor(Predictor):
 
         # Titta på vart kurvan stationeras, samt vilken som har minst noice. Detta blir d-värdet!!!
 
-    def apply_autoarima(self,df_train):
-        auto_arima = pm.auto_arima(df_train, stepwise = False, seasonal = False)
-        auto_arima
-        
+
 
     def train_model_w(self, df):
         self.order = (1, 0, 0)  #default
@@ -103,12 +102,49 @@ class ARIMAPredictor(Predictor):
         return predictions
 
 
+    def apply_autoarima(self,df_train):
+        auto_arima = pm.auto_arima(df_train, stepwise = False, seasonal = False)
+        auto_arima
 
-    
+        
+        
+    def train_model_s(self, df):
+
+        split_index = int(0.5 * len(df))
+        train_df = df.iloc[:split_index]
+        test_df = df.iloc[split_index:]
+        X_train = train_df['applied_load']
+        self.order = (2, 0, 1) 
+        self.seasonal_order = (0,1,1,1440)
+        
+        #self.model = SARIMAX(X_train, order=self.order, seasonal_order=self.seasonal_order)
+        #self.model = self.model.fit()
+
+        self.model = auto_arima(X_train, seasonal=False)
+        self.model.fit(X_train)
+        print("Final SARIMA model summary:")
+        print(self.model.summary())
+        return self.model
+
+    def generate_predictions_s(self, start_date, end_date):
+        if self.model is None:
+            raise ValueError("Model has not been trained yet.")
+        predictions = []
+        for date in pd.date_range(start=start_date, end=end_date, freq='T'):
+            current_load = df.loc[date]['applied_load']
+            self.model = self.model.append(current_load)
+            self.model = self.model.fit()
+            forecast = self.model.forecast(steps=1)
+            predictions.append(forecast[0])
+        predictions = np.array(predictions)
+        return predictions
 
     def train_model(self, df):
 
-        split_index = int(0.66 * len(df))
+        #df = df.resample('H').mean()
+        df = df.iloc[::60]
+
+        split_index = int(0.6 * len(df))
         train_df = df.iloc[:split_index]
         test_df = df.iloc[split_index:]
         X_train = train_df['applied_load']
@@ -117,8 +153,8 @@ class ARIMAPredictor(Predictor):
     
         self.index = df.index
         print(self.index)
-        self.order = (2,1,3) # order from autoarima  (cna be found in PACF and residuals plots as well)
-        self.seasonal_order = (1,1,1,24) # seasonal order from autoarima (can be found in PACF and residuals plots as well)
+        self.order = (7,0,2) # order from autoarima  (cna be found in PACF and residuals plots as well)
+        self.seasonal_order = (7,0,2,24) # seasonal order from autoarima (can be found in PACF and residuals plots as well)
         self.model = SARIMAX(X_train, order=self.order, seasonal_order=self.seasonal_order)
         #self.model = ARIMA(X_train, order=self.order) 
         """
@@ -147,6 +183,18 @@ class ARIMAPredictor(Predictor):
         print(self.model.summary())
 
         return self.model
+    
+
+    def generate_predictions(self, start_date, end_date):
+        if self.model is None:
+            raise ValueError("Model has not been trained yet.")
+
+        predictions = self.model.predict(start=start_date, end=end_date, typ ="levels")
+        #predictions = forecast.p redicted_mean
+
+        return predictions
+
+
     
     def validate_model(self, df):
         
@@ -200,12 +248,6 @@ class ARIMAPredictor(Predictor):
         return predictions
     
 
-    def generate_predictions(self, start_date, end_date):
-        if self.model is None:
-            raise ValueError("Model has not been trained yet.")
-
-        predictions = self.model.predict(start=start_date, end=end_date, typ='levels') 
-        return predictions
 
     
     def generate_predictions3(self, start_date, end_date):

@@ -94,14 +94,12 @@ def generate_predictions_with_prophet(start_date, end_date):
 
 def create_and_train_arima_predictor():
     df = arima_predictor.import_historical_dataset()
-   # df = arima_predictor.generate_X_values("1995-07-01", "1995-07-31")
     if df is not None:
         df = arima_predictor.preprocess_data(df)
         df = arima_predictor.remove_outliers(df)
-        print("den som de tränas på", df)
-        model = arima_predictor.train_model(df)
-        #arima_predictor.validate_model(df)
-    return model
+        model = arima_predictor.train_model(df)  # Retrain the ARIMA model
+        return model
+    return None
 
 def generate_predictions_with_arima(start_date, end_date):
     df = arima_predictor.generate_X_values(start_date, end_date)
@@ -134,5 +132,6 @@ if __name__ == "__main__":
    # generate_predictions_with_prophet("1995-07-06","1995-07-25")
    # create_and_train_arima_predictor()
    # generate_predictions_with_arima("1995-07-05 00:00:00","1995-07-07 00:00:00")
+   # generate_predictions_with_arima("1998-05-06","1998-05-07")
     flask_thread = threading.Thread(target=start_flask) #Flaskservern måste köras på en egen tråd! annars kan man inte köra annan kod samtidigt 
     flask_thread.start()
