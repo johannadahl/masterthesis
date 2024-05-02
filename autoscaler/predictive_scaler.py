@@ -107,7 +107,7 @@ def create_and_train_arima_predictor():
 
 def generate_predictions_with_arima(start_date, end_date):
     df = arima_predictor.generate_X_values(start_date, end_date)
-    predictions = arima_predictor.generate_predictions(start_date, end_date)
+    predictions = arima_predictor.predictions(start_date, end_date)
     df['pred'] = predictions
     df_with_predictions = df.drop(columns=df.columns.difference(['pred']))
     end_date_dt = pd.to_datetime(end_date)
@@ -128,11 +128,14 @@ def visualize_arima_forecast():
    # train_df = df.iloc[:split_index]
    # test_df = df.iloc[split_index:]
     X_train = df['applied_load']
-    df_predictions, pred_mean, forecast_ci = generate_predictions_with_arima2("1995-07-05","1995-07-07")
+    predictions, pred_mean, forecast_ci = generate_predictions_with_arima2("1995-07-05","1995-07-07")
+    df_predictions = arima_predictor.predictions("1995-07-01","1995-07-20")
+    print("predictions", df_predictions)
     # Plot the forecast
     plt.figure(figsize=(12, 6))
     plt.plot(X_train, label='Observed')
     plt.plot(pred_mean, label='Forecast', color='red')
+    plt.plot(df_predictions, label='predicted')
     plt.fill_between(forecast_ci.index, forecast_ci.iloc[:, 0], forecast_ci.iloc[:, 1], color='pink')
     plt.title("workload Forecast")
     plt.xlabel("Timestamp")
@@ -160,5 +163,7 @@ if __name__ == "__main__":
    # generate_predictions_with_prophet("1995-07-06","1995-07-25")
     create_and_train_arima_predictor()
     visualize_arima_forecast()
+  #  generate_predictions_with_arima("1995-07-01","1995-07-20")
+
     flask_thread = threading.Thread(target=start_flask) #Flaskservern måste köras på en egen tråd! annars kan man inte köra annan kod samtidigt 
     flask_thread.start()

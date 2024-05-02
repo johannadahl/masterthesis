@@ -158,6 +158,10 @@ class ARIMAPredictor(Predictor):
 
         return forecast,forecast_mean,forecast_ci
     
+    def predictions(self,start_date,end_date):
+        predictions = self.model.predict(start=start_date, end=end_date, dynamic=False, information_set='predicted', signal_only=False)
+        return predictions
+    
     def validate_model(self, df):
         
         split_index = int(0.66 * len(df))
