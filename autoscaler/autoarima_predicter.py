@@ -3,10 +3,7 @@ from predictor import Predictor
 import pandas as pd
 import numpy as np, pandas as pd
 import matplotlib.pyplot as plt
-from numpy import mean
-from numpy import std
-import pmdarima as pm
-from sklearn.model_selection import TimeSeriesSplit
+
 import warnings
 warnings.filterwarnings("ignore")
 from pmdarima import auto_arima
