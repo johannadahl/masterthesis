@@ -107,8 +107,12 @@ def create_and_train_arima_predictor():
 
 def generate_predictions_with_arima(start_date, end_date):
     print("I GENERATE PREDICTIONS")
-    predictions = arima_predictor.predictions(start_date, end_date)
+    predictions = arima_predictor.generate_predictions(start_date, end_date)
+
+    ##Prediktions kommer per 60:e min, här resamplar vi för att få varje minut
     upsampled_predictions = predictions.resample('T').mean()
+
+    #Interpolering för att få punkter mellan punkter
     interpolated_predictions = upsampled_predictions.interpolate(method='linear')
     print("i generate predictions", interpolated_predictions)
     interpolated_predictions_df = interpolated_predictions.to_frame()
@@ -116,16 +120,21 @@ def generate_predictions_with_arima(start_date, end_date):
     print(interpolated_predictions_df)
     end_date_dt = pd.to_datetime(end_date)
     start_date_dt = pd.to_datetime(start_date)
- #   df_with_predictions = df_with_predictions[~df_with_predictions.index.duplicated(keep='last')]
     df_predictions = interpolated_predictions_df.loc[start_date_dt:end_date_dt - pd.Timedelta(minutes=1)]
     print(df_predictions)
     return df_predictions
 
-def generate_forecast_with_arima(start_date, end_date):
+def generate_forecast_with_arima():
+    """
+    Används ej
+    """
     df_predictions, pred_mean, forecast_ci = arima_predictor.generate_forecast()
     return df_predictions, pred_mean, forecast_ci
 
 def visualize_arima_forecast():
+    """
+    Används ej
+    """
     df = arima_predictor.import_historical_dataset()
     df = arima_predictor.preprocess_data(df)
     df = arima_predictor.remove_outliers(df)
@@ -133,8 +142,8 @@ def visualize_arima_forecast():
    # train_df = df.iloc[:split_index]
    # test_df = df.iloc[split_index:]
     X_train = df['applied_load']
-    predictions, pred_mean, forecast_ci = generate_predictions_with_arima2("1995-07-05","1995-07-07")
-    df_predictions = arima_predictor.predictions("1995-07-01","1995-07-20")
+    predictions, pred_mean, forecast_ci = generate_forecast_with_arima()
+    df_predictions = arima_predictor.generate_predictions("1995-07-01","1995-07-20")
     upsampled_predictions = df_predictions.resample('T').mean()
 
     # Perform linear interpolation to fill in the missing values
@@ -172,5 +181,6 @@ if __name__ == "__main__":
    # generate_predictions_with_xgboost("1995-07-16","1995-07-20")
    # create_and_train_prophet_predictor()
     create_and_train_arima_predictor()
+    visualize_arima_forecast()
     flask_thread = threading.Thread(target=start_flask) #Flaskservern måste köras på en egen tråd! annars kan man inte köra annan kod samtidigt 
     flask_thread.start()
