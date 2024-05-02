@@ -108,19 +108,21 @@ class ARIMAPredictor(Predictor):
 
     def train_model(self, df):
 
-        split_index = int(0.66 * len(df))
-        train_df = df.iloc[:split_index]
-        test_df = df.iloc[split_index:]
+        sampled_df = df.iloc[::60]
+
+        split_index = int(0.66 * len(sampled_df))
+        train_df = sampled_df.iloc[:split_index]
+        test_df = sampled_df.iloc[split_index:]
         X_train = train_df['applied_load']
 
         #X = df['applied_load']
     
         self.index = df.index
         print(self.index)
-        self.order = (2,1,3) # order from autoarima  (cna be found in PACF and residuals plots as well)
-        self.seasonal_order = (1,1,1,24) # seasonal order from autoarima (can be found in PACF and residuals plots as well)
-        self.model = SARIMAX(X_train, order=self.order, seasonal_order=self.seasonal_order)
-        #self.model = ARIMA(X_train, order=self.order) 
+        self.order = (7,0,2) # order from autoarima  (cna be found in PACF and residuals plots as well)
+        self.seasonal_order = (7,0,2,24) # seasonal order from autoarima (can be found in PACF and residuals plots as well)
+        model = SARIMAX(X_train, order=self.order, seasonal_order=self.seasonal_order)
+       # model = ARIMA(X_train, order=self.order) 
         """
         De som behövdes läggas till här är en index log, så att den fattar hur den ska hantera framtida prediktioner. 
         Den lägger alltså till timestamps för hela den råa NASA datan, även om den bara tränar på halva.
@@ -141,12 +143,20 @@ class ARIMAPredictor(Predictor):
         #self.order = (3, 0, 2)
         #self.model = ARIMA(X, order=self.order)
 
-        self.model = self.model.fit()
+        self.model = model.fit()
 
         print("Final ARIMA model summary:")
         print(self.model.summary())
 
         return self.model
+    
+    def generate_forecast(self):
+        forecast_periods = 200  # Forecast the next 12 months
+        forecast = self.model.get_forecast(steps=forecast_periods)
+        forecast_mean = forecast.predicted_mean
+        forecast_ci = forecast.conf_int()
+
+        return forecast,forecast_mean,forecast_ci
     
     def validate_model(self, df):
         
@@ -245,8 +255,6 @@ class ARIMAPredictor(Predictor):
             predictions.append(prediction)
 
         return predictions
-
-
 
 
     def generate_predictions2(self, df):
