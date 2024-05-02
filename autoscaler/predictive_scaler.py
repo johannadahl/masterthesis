@@ -24,7 +24,7 @@ def predict():
     Ändrade det här, så nu är det bara en rad som man måste "ändra" om man vill byta prediktionsmodell (kommentera ut de som inte ska användas)
     Detta kan struktureras upp bättre sen med args men funkar så länge,
     """""
-    df_predictions = generate_predictions_with_arima2(start_date, end_date)
+    df_predictions = generate_predictions_with_arima(start_date, end_date)
    # df_predictions = generate_predictions_with_xgboost(start_date, end_date)
    # df_predictions = generate_predictions_with_prophet(start_date, end_date)
     payload = df_predictions.reset_index().to_json(orient='records')
@@ -106,17 +106,22 @@ def create_and_train_arima_predictor():
     return model
 
 def generate_predictions_with_arima(start_date, end_date):
-    df = arima_predictor.generate_X_values(start_date, end_date)
+    print("I GENERATE PREDICTIONS")
     predictions = arima_predictor.predictions(start_date, end_date)
-    df['pred'] = predictions
-    df_with_predictions = df.drop(columns=df.columns.difference(['pred']))
+    upsampled_predictions = predictions.resample('T').mean()
+    interpolated_predictions = upsampled_predictions.interpolate(method='linear')
+    print("i generate predictions", interpolated_predictions)
+    interpolated_predictions_df = interpolated_predictions.to_frame()
+    interpolated_predictions_df.columns = ['pred']
+    print(interpolated_predictions_df)
     end_date_dt = pd.to_datetime(end_date)
     start_date_dt = pd.to_datetime(start_date)
-    df_with_predictions = df_with_predictions[~df_with_predictions.index.duplicated(keep='last')]
-    df_predictions = df_with_predictions.loc[start_date_dt:end_date_dt - pd.Timedelta(minutes=1)]
+ #   df_with_predictions = df_with_predictions[~df_with_predictions.index.duplicated(keep='last')]
+    df_predictions = interpolated_predictions_df.loc[start_date_dt:end_date_dt - pd.Timedelta(minutes=1)]
+    print(df_predictions)
     return df_predictions
 
-def generate_predictions_with_arima2(start_date, end_date):
+def generate_forecast_with_arima(start_date, end_date):
     df_predictions, pred_mean, forecast_ci = arima_predictor.generate_forecast()
     return df_predictions, pred_mean, forecast_ci
 
@@ -130,12 +135,18 @@ def visualize_arima_forecast():
     X_train = df['applied_load']
     predictions, pred_mean, forecast_ci = generate_predictions_with_arima2("1995-07-05","1995-07-07")
     df_predictions = arima_predictor.predictions("1995-07-01","1995-07-20")
+    upsampled_predictions = df_predictions.resample('T').mean()
+
+    # Perform linear interpolation to fill in the missing values
+    interpolated_predictions = upsampled_predictions.interpolate(method='linear')
     print("predictions", df_predictions)
+    print("interpolated predictions", interpolated_predictions)
     # Plot the forecast
     plt.figure(figsize=(12, 6))
     plt.plot(X_train, label='Observed')
     plt.plot(pred_mean, label='Forecast', color='red')
-    plt.plot(df_predictions, label='predicted')
+    plt.plot(df_predictions, label='Predicted')
+    plt.plot(interpolated_predictions, label='interpolated predicted')
     plt.fill_between(forecast_ci.index, forecast_ci.iloc[:, 0], forecast_ci.iloc[:, 1], color='pink')
     plt.title("workload Forecast")
     plt.xlabel("Timestamp")
@@ -160,10 +171,6 @@ if __name__ == "__main__":
    #  create_and_train_xgboost_predictor()
    # generate_predictions_with_xgboost("1995-07-16","1995-07-20")
    # create_and_train_prophet_predictor()
-   # generate_predictions_with_prophet("1995-07-06","1995-07-25")
     create_and_train_arima_predictor()
-    visualize_arima_forecast()
-  #  generate_predictions_with_arima("1995-07-01","1995-07-20")
-
     flask_thread = threading.Thread(target=start_flask) #Flaskservern måste köras på en egen tråd! annars kan man inte köra annan kod samtidigt 
     flask_thread.start()
