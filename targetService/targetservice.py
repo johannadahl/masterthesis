@@ -503,7 +503,7 @@ def plot_loads_minutes(
     axs[0].plot(minutes, experienced_loads, '-r', label='Experienced load (Without Prediction)')
     axs[0].plot(minutes, predicted_experienced_loads, '-g', label='Experienced load (With Prediction)')
     axs[0].plot(minutes, applied_loads, '-b', label='Applied load')
-    axs[0].plot(minutes, predicted_load_list, color='orange',  label='Predicted applied Load')
+    axs[0].plot(predicted_load_list, color='orange',  label='Predicted applied Load')
     axs[0].set_ylabel('Load')
     axs[0].grid()
     axs[0].legend()
