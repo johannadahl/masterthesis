@@ -24,8 +24,8 @@ def predict():
     Ändrade det här, så nu är det bara en rad som man måste "ändra" om man vill byta prediktionsmodell (kommentera ut de som inte ska användas)
     Detta kan struktureras upp bättre sen med args men funkar så länge,
     """""
-   # df_predictions = generate_predictions_with_arima(start_date, end_date)
-   # df_predictions = generate_predictions_with_xgboost(start_date, end_date)
+    #df_predictions = generate_predictions_with_arima2(start_date, end_date)
+    # df_predictions = generate_predictions_with_xgboost(start_date, end_date)
     df_predictions = generate_predictions_with_prophet(start_date, end_date)
     payload = df_predictions.reset_index().to_json(orient='records')
     return payload
@@ -44,6 +44,8 @@ def create_and_train_xgboost_predictor():
         print(f'Fold scores:{scores}')
    #  #   xgboost_predictor.show_feature_importance(xgboost_predictor.model,df)
         xgboost_predictor.visualize_CV_predictions(xgboost_predictor.model,df,splits)
+        #best_params, best_score = xgboost_predictor.optimize_hyperparameters(df)
+        #print(best_params,best_score)
     return xgboost_predictor
 
 def generate_predictions_with_xgboost(start_date, end_date):
@@ -112,6 +114,30 @@ def generate_predictions_with_arima(start_date, end_date):
     df_predictions = df_with_predictions.loc[start_date_dt:end_date_dt - pd.Timedelta(minutes=1)]
     return df_predictions
 
+def generate_predictions_with_arima2(start_date, end_date):
+    df_predictions, pred_mean, forecast_ci = arima_predictor.generate_forecast()
+    return df_predictions, pred_mean, forecast_ci
+
+def visualize_arima_forecast():
+    df = arima_predictor.import_historical_dataset()
+    df = arima_predictor.preprocess_data(df)
+    df = arima_predictor.remove_outliers(df)
+   # split_index = int(0.66 * len(df))
+   # train_df = df.iloc[:split_index]
+   # test_df = df.iloc[split_index:]
+    X_train = df['applied_load']
+    df_predictions, pred_mean, forecast_ci = generate_predictions_with_arima2("1995-07-05","1995-07-07")
+    # Plot the forecast
+    plt.figure(figsize=(12, 6))
+    plt.plot(X_train, label='Observed')
+    plt.plot(pred_mean, label='Forecast', color='red')
+    plt.fill_between(forecast_ci.index, forecast_ci.iloc[:, 0], forecast_ci.iloc[:, 1], color='pink')
+    plt.title("workload Forecast")
+    plt.xlabel("Timestamp")
+    plt.ylabel("Workload")
+    plt.legend()
+    plt.show()
+
 def write_to_latex(df, filename):
     df_tail = df.tail()  # Get the head of the DataFrame
     latex_table = df_tail.to_latex()
@@ -126,12 +152,12 @@ if __name__ == "__main__":
     """""
     Här tränas först modellerna innan servern startas! Sen kan severn bara igång om man vill testa lite olika target service värden.
     """"" 
-   # create_and_train_xgboost_predictor()
-   # generate_predictions_with_xgboost("1998-05-06","1998-05-07")
+    #create_and_train_xgboost_predictor()
+   # generate_predictions_with_xgboost("1995-07-16","1995-07-20")
     create_and_train_prophet_predictor()
    # generate_predictions_with_prophet("1995-07-06","1995-07-25")
    # create_and_train_arima_predictor()
-   # generate_predictions_with_arima("1995-07-05 00:00:00","1995-07-07 00:00:00")
+   # visualize_arima_forecast()
    # generate_predictions_with_arima("1998-05-06","1998-05-07")
     flask_thread = threading.Thread(target=start_flask) #Flaskservern måste köras på en egen tråd! annars kan man inte köra annan kod samtidigt 
     flask_thread.start()
