@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 
 import warnings
 warnings.filterwarnings("ignore")
-from pmdarima import auto_arima
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.stattools import adfuller
 #from pandas import datetime
