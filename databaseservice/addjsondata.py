@@ -81,10 +81,8 @@ def main():
     #Interpolering för att få punkter mellan punkter
     interpolated_df = upsampled_df.interpolate(method='linear')
     print("i generate predictions", interpolated_df)
-    interpolated_predictions_df = interpolated_df.to_frame()
-    print(interpolated_predictions_df)
 
-    connect_and_insert_to_sql(interpolated_predictions_df)
+    connect_and_insert_to_sql(interpolated_df)
 
 
 if __name__ == '__main__':
