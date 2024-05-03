@@ -73,8 +73,8 @@ def main():
         for timestamp, requests in data:
             data_list.append({'timestamp': pd.to_datetime(timestamp, unit='ms'), 'requests': requests})
     df = pd.DataFrame(data_list)
-    print(df_counts)
     df_counts = df.groupby('timestamp').sum().reset_index()  # Group by 'timestamp' and sum the requests
+    print(df_counts)
     connect_and_insert_to_sql(df_counts)
 
 
