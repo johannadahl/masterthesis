@@ -47,7 +47,7 @@ def connect_and_insert_to_sql(df_counts):
         for index, row in df_counts.iterrows():
             timestamp = row['timestamp']
             requests = row['requests']
-            send_query(cursor, "INSERT INTO counter_strike2 (timestamp, requests) VALUES (%s, %s);", (timestamp, requests))
+            send_query(cursor, "INSERT INTO counter_strike2 (timestamp, requests) VALUES (%s, %s);", (timestamp, int(requests)))
 
         connection.commit()
         
@@ -80,6 +80,7 @@ def main():
 
     #Interpolering för att få punkter mellan punkter
     interpolated_df = upsampled_df.interpolate(method='linear')
+    interpolated_df.reset_index(inplace=True)
     print("i generate predictions", interpolated_df)
 
     connect_and_insert_to_sql(interpolated_df)
