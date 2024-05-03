@@ -73,6 +73,7 @@ def main():
         for timestamp, requests in data:
             data_list.append({'timestamp': pd.to_datetime(timestamp, unit='ms'), 'requests': requests})
     df = pd.DataFrame(data_list)
+    df = df[df['timestamp'].dt.year >= 2024]
     df_counts = df.groupby('timestamp').sum().reset_index()  # Group by 'timestamp' and sum the requests
      ##Prediktions kommer per 60:e min, här resamplar vi för att få varje minut
     df_counts.set_index('timestamp', inplace=True)
