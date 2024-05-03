@@ -67,12 +67,13 @@ def main():
 
     data_list = []
     for line in sys.stdin:
-        data = json.loads(line)  
-        data_list.append(data)
-
-    df = pd.DataFrame(data_list, columns=['timestamp', 'requests'])  
-    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms') 
-    df_counts = df.groupby('timestamp').size().reset_index(name='requests')  
+        data = json.loads(line)
+        print(data)  
+        for timestamp, requests in data:
+            data_list.append({'timestamp': pd.to_datetime(timestamp, unit='ms'), 'requests': requests})
+    print(data_list)
+    df = pd.DataFrame(data_list)
+    df_counts = df.groupby('timestamp').sum().reset_index()  # Group by 'timestamp' and sum the requests
     connect_and_insert_to_sql(df_counts)
 
 
