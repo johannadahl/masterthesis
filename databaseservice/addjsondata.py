@@ -44,8 +44,10 @@ def connect_and_insert_to_sql(df_counts):
        #     )
        # """)
 
-        for row,item in df_counts.iterrows():
-            send_query(cursor,"INSERT INTO counter_strike2 (timestamp,requests) Values (%s,%s);",(item['time'], item['requests']))
+        for index, row in df_counts.iterrows():
+            timestamp = row['timestamp']
+            requests = row['requests']
+            send_query(cursor, "INSERT INTO counter_strike2 (timestamp, requests) VALUES (%s, %s);", (timestamp, requests))
 
         connection.commit()
         
@@ -68,11 +70,10 @@ def main():
     data_list = []
     for line in sys.stdin:
         data = json.loads(line)
-        print(data)  
         for timestamp, requests in data:
             data_list.append({'timestamp': pd.to_datetime(timestamp, unit='ms'), 'requests': requests})
-    print(data_list)
     df = pd.DataFrame(data_list)
+    print(df_counts)
     df_counts = df.groupby('timestamp').sum().reset_index()  # Group by 'timestamp' and sum the requests
     connect_and_insert_to_sql(df_counts)
 
