@@ -74,8 +74,16 @@ def main():
             data_list.append({'timestamp': pd.to_datetime(timestamp, unit='ms'), 'requests': requests})
     df = pd.DataFrame(data_list)
     df_counts = df.groupby('timestamp').sum().reset_index()  # Group by 'timestamp' and sum the requests
-    print(df_counts)
-    connect_and_insert_to_sql(df_counts)
+     ##Prediktions kommer per 60:e min, här resamplar vi för att få varje minut
+    upsampled_df = df_counts.resample('T').mean()
+
+    #Interpolering för att få punkter mellan punkter
+    interpolated_df = upsampled_df.interpolate(method='linear')
+    print("i generate predictions", interpolated_df)
+    interpolated_predictions_df = interpolated_df.to_frame()
+    print(interpolated_predictions_df)
+
+    connect_and_insert_to_sql(interpolated_predictions_df)
 
 
 if __name__ == '__main__':
