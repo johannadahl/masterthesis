@@ -70,10 +70,9 @@ def main():
         data = json.loads(line)  
         data_list.append(data)
 
-    df = pd.DataFrame(data_list) #Adds all data into a dataframe
-    df_counts = df.groupby('time').size().reset_index(name='requests') #preprocess the data into requests/timestammp (in seconds)
-  #  print(df)
-  #  print(df_counts)
+    df = pd.DataFrame(data_list, columns=['timestamp', 'requests'])  
+    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms') 
+    df_counts = df.groupby('timestamp').size().reset_index(name='requests')  
     connect_and_insert_to_sql(df_counts)
 
 
