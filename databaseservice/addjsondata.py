@@ -75,6 +75,7 @@ def main():
     df = pd.DataFrame(data_list)
     df_counts = df.groupby('timestamp').sum().reset_index()  # Group by 'timestamp' and sum the requests
      ##Prediktions kommer per 60:e min, här resamplar vi för att få varje minut
+    df_counts.set_index('timestamp', inplace=True)
     upsampled_df = df_counts.resample('T').mean()
 
     #Interpolering för att få punkter mellan punkter
