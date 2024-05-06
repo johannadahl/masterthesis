@@ -17,6 +17,8 @@ import pandas as pd
 from matplotlib import pyplot
 from sklearn.metrics import mean_squared_error
 from math import sqrt
+import pmdarima as pm
+
 
 
 class ARIMAPredictor(Predictor):
@@ -71,6 +73,12 @@ class ARIMAPredictor(Predictor):
         split_index = int(0.30 * len(sampled_df))
         train_df = sampled_df.iloc[:split_index]
         test_df = sampled_df.iloc[split_index:]
+        #df = df.resample('H').mean()
+        df = df.iloc[::60]
+
+        split_index = int(0.6 * len(df))
+        train_df = df.iloc[:split_index]
+        test_df = df.iloc[split_index:]
         X_train = train_df['applied_load']
 
         self.index = df.index

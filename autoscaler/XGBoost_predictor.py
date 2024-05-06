@@ -4,8 +4,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import TimeSeriesSplit
-from sklearn.model_selection import GridSearchCV
-
 from sklearn.metrics import mean_squared_error
 import seaborn as sns
 
@@ -91,12 +89,12 @@ class XGBoostPredictor(Predictor):
             X_test = test[FEATURES]
             y_test = test[TARGET]
 
-            reg = xgb.XGBRegressor(base_score=0.5,    
-                                n_estimators=100,
+            reg = xgb.XGBRegressor(base_score=0.5, booster='gbtree',    
+                                n_estimators=2000,
                                 early_stopping_rounds=50,
                                 objective='reg:linear',
                                 max_depth=3,
-                                learning_rate=0.05)
+                                learning_rate=0.01)
             reg.fit(X_train, y_train,
                     eval_set=[(X_train, y_train), (X_test, y_test)],
                     verbose=100)
@@ -108,26 +106,6 @@ class XGBoostPredictor(Predictor):
 
         self.model = reg
         return reg, preds, scores
-    
-    def optimize_hyperparameters(self, df):
-        FEATURES = ['hour', 'dayofweek', 'lag1', 'lag2', 'lag3']
-        TARGET = 'applied_load'
-
-        param_grid = {
-            'n_estimators': [100, 500, 1000, 2000],
-            'learning_rate': [0.01, 0.05, 0.1, 0.3],
-            'max_depth': [1, 3, 5, 7]
-        }
-
-        reg = xgb.XGBRegressor(base_score=0.5, objective='reg:linear')
-
-        grid_search = GridSearchCV(reg, param_grid, cv=5, scoring='neg_mean_squared_error')
-        grid_search.fit(df[FEATURES], df[TARGET])
-
-        best_params = grid_search.best_params_
-        best_score = np.sqrt(-grid_search.best_score_)
-
-        return best_params, best_score
 
     def add_lag_filters(self,df):
         target_map = df['applied_load'].to_dict()
