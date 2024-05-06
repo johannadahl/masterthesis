@@ -497,8 +497,9 @@ def plot_loads_minutes(
         
 ):
 
+    import matplotlib.dates as mdates
+
     fig, axs = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
-    #print (predicted_load_list)
 
     axs[0].plot(minutes, experienced_loads, '-r', label='Experienced load (Without Prediction)')
     axs[0].plot(minutes, predicted_experienced_loads, '-g', label='Experienced load (With Prediction)')
@@ -508,14 +509,18 @@ def plot_loads_minutes(
     axs[0].grid()
     axs[0].legend()
 
-   # axs[1].plot(hours, total_instances, '-r', label='Total instances (Without Prediction)')
-   # axs[1].plot(hours, predicted_instances, '-g', label='Total instances (With Prediction)')
     axs[1].plot(minutes, ready_instances, '-b', label='Ready instances (Without Prediction)')
     axs[1].plot(minutes, predicted_ready_instances, color='orange', label='Ready instances (With Prediction)')
-    axs[1].set_xlabel('Time (minutes)')
+    axs[1].set_xlabel('Time')
     axs[1].set_ylabel('Instances')
     axs[1].grid()
     axs[1].legend()
+
+    axs[0].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+    axs[1].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+
+    #försöka lägga till här vilken modell/data som används
+    plt.suptitle('Simulation using model X and data Y')
 
     plt.tight_layout()
     plt.show()
