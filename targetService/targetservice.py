@@ -13,6 +13,7 @@ from collections import deque
 from enum import Enum
 from typing import Generator, Callable
 from matplotlib import pyplot as plt
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 from scaling_time_options import ScalingTimeOptions
 from service_instance_state import ServiceInstanceState
@@ -32,8 +33,8 @@ PredictorBASE = "http://127.0.0.1:8010/"
 
 SCALING_THRESHOLD = 0.2
 DESIRED_MEAN_LOAD = 0.5
-SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=60), std_dev=timedelta(minutes=0.01))
-SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=60), std_dev=timedelta(minutes=0.01))
+SCALE_UP_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=30), std_dev=timedelta(minutes=0.01))
+SCALE_DOWN_TIME = ScalingTimeOptions(mean_time=timedelta(minutes=30), std_dev=timedelta(minutes=0.01))
 
 class TargetService(Resource):
 
@@ -467,6 +468,13 @@ def simulate_run_minutes():
     predicted_load_list = df_predictions['pred'].tolist()
     print(df_predictions)
 
+    ##PREDICITION ACCURACY
+    mae, rmse, mape = calculate_prediction_accuracy(per_minute_loads, predicted_load_list)
+    print("Mean Absolute Error: ", round(mae,2))
+    print("Root Mean Squared Error: ", round(rmse,2))
+    print("Mean Absolute Percentage Error: {:.1%}".format(mape))
+
+    ##SCALING ACCURACY
     service_accuracy = calculate_scaling_accuracy(service_accuracy_differences)
     service_squared_accuracy = calculate_scaling_accuracy(service_squared_accuracy_differences)
     future_service_accuracy = calculate_scaling_accuracy(future_service_accuracy_differences)
@@ -524,6 +532,21 @@ def plot_loads_minutes(
 
     plt.tight_layout()
     plt.show()
+
+
+def mean_absolute_percentage_error(y_true, y_pred): 
+    """
+    MAPE - gives the avarage percent off what our prediction is from the ground truth.
+    """
+    y_true, y_pred = np.array(y_true), np.array(y_pred)
+    mape = np.mean(np.abs((y_true - y_pred) / y_true)) 
+    return mape
+
+def calculate_prediction_accuracy(true_values: list[float], predictions: list[float]):
+    mae = mean_absolute_error(true_values,predictions)
+    rmse = np.sqrt(mean_squared_error(true_values, predictions))
+    mape = mean_absolute_percentage_error(true_values,predictions)
+    return mae, rmse, mape
 
 
 def calculate_total_load_capability(service: TargetService):

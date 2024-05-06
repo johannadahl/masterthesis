@@ -24,9 +24,9 @@ def predict():
     Ändrade det här, så nu är det bara en rad som man måste "ändra" om man vill byta prediktionsmodell (kommentera ut de som inte ska användas)
     Detta kan struktureras upp bättre sen med args men funkar så länge,
     """""
-    df_predictions = generate_predictions_with_arima(start_date, end_date)
+   # df_predictions = generate_predictions_with_arima(start_date, end_date)
    # df_predictions = generate_predictions_with_xgboost(start_date, end_date)
-   # df_predictions = generate_predictions_with_prophet(start_date, end_date)
+    df_predictions = generate_predictions_with_prophet(start_date, end_date)
     payload = df_predictions.reset_index().to_json(orient='records')
     return payload
 
@@ -177,8 +177,8 @@ if __name__ == "__main__":
     """"" 
     #create_and_train_xgboost_predictor()
    # generate_predictions_with_xgboost("1995-07-16","1995-07-20")
-   # create_and_train_prophet_predictor()
-    create_and_train_arima_predictor()
-    visualize_arima_forecast()
+    create_and_train_prophet_predictor()
+   # create_and_train_arima_predictor()
+  #  visualize_arima_forecast()
     flask_thread = threading.Thread(target=start_flask) #Flaskservern måste köras på en egen tråd! annars kan man inte köra annan kod samtidigt 
     flask_thread.start()
